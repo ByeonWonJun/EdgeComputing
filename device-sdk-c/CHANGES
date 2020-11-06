@@ -1,0 +1,108 @@
+This is the C SDK for EdgeX. It is based largely on the Go SDK but the API
+differs as follows:
+
+* Asynchronous device readings are submitted using an API function call rather
+  than Go's "channel" facility.
+
+Changes for 1.2.1:
+
+- Fixes in the compatibility layer for the v1 API.
+
+Changes for 1.2.0 "Geneva":
+
+- --instance flag introduced for suffixing the device service name.
+- Environment variable names for config over-rides are all-uppercase.
+- Device lastConnected property is managed (configurable and disabled by default)
+- Implementations may change the operational state of a device.
+- Commandline and environment options aligned with Go microservices.
+- Arrays of primitive types supported in Readings.
+- Device Readings are populated with datatype information.
+- Full dynamic discovery implementation with Provision Watchers.
+- New SDK API: see README.v2.md for details.
+  - the v1 API will be removed in version 2.0.0
+- Utility functions added in edgex-base.h for finding Protocol Properties, and
+  for obtaining numeric values from name-value pair lists.
+
+Changes for 1.1.0 "Fuji":
+
+- ResourceOperation field "object" is renamed to "deviceResource".
+  - "object" is still recognized for compatibility purposes but is deprecated.
+- Implement "defaultValue" and "parameter" fields for write operations.
+- Allow query strings to be passed to device GET requests.
+- Added /api/version endpoint for obtaining service version strings.
+- Commandline argument processing mostly handled within the SDK.
+- Added callback API for device addition/update/removal events.
+- Configuration can be overridden via environment variables when populating
+  the registry.
+- Subtables are supported in the Driver configuration.
+- Device services de-register from the registry on exit.
+- Event timestamps are now at nanosecond resolution, and are monotonic.
+
+Changes for 1.0.0 "Edinburgh":
+
+- EnableLogging replaces RemoteURL in the Logging configuration. The location
+  of the logging service is configured in the [Clients] section.
+- Removed ReadMaxLimit configuration option.
+- Events containing binary Readings are encoded using CBOR.
+  - This introduces a dependency on libcbor.
+- Data transformations (other than "mask") are applied for device PUT requests.
+- When querying for Device Profiles they are returned in a list in the same way
+  as devices.
+- Device service now follows the new/start/stop/free lifecycle pattern.
+- Initial support for configuration changes without restarting.
+- Support Correlation IDs. This introduces a requirement for libUUID.
+- The API for Event generation other than via device GET requests is split out
+  into a seperate header edgex/eventgen.h
+- Added support for Automatic Events.
+- The API for managing devices and profiles is split out into a seperate header
+  edgex/device-mgmt.h
+- The device name is passed to the Get and Set handlers. The commandrequest
+  structure is simplified.
+- Example implementation includes setting service name and registry location
+  from the command line and environment.
+- Float data is marshalled as base64 unless specified otherwise in the
+  floatEncoding field of the device profile.
+- Schedules and ScheduleEvents are removed.
+- The get and set handlers now take an edgex_protocols object rather than an
+  edgex_addressable.
+- The device endpoint can be used to access either resources or deviceResources.
+  The commands section of a device profile is not used.
+- Endpoints for other EdgeX microservices are obtained from the registry (if
+  enabled) rather than configuration.
+- Metadata for individual devices can be obtained in the device management API.
+- The edgex_deviceobject type is renamed to edgex_deviceresource to reflect its
+  naming in the profile definition.
+- The registry service is now identified by a URL, eg "consul://localhost:8500".
+  - Support for consul as the registry service is built-in, but other
+    implementations may be added using the API in edgex/registry.h
+- Support EdgeX System Management API.
+- Initial support for binary data, marshalled as base64 strings.
+- Assertions on data readings are implemented.
+- Some parts of the edgex model are now held in appropriate types rather
+  than strings.
+  - edgex_device_resulttype is renamed to edgex_propertytype, reflecting its
+    broader usage.
+
+Changes for 0.7.2:
+
+- Device GET commands return Event structures rather than name-value pairs.
+
+Changes for 0.7.1:
+
+- Some verification on Device Profiles is now done at startup. This may result
+  in failures during startup rather than in "device" command handling.
+- The /device/name/{name}/{command} REST endpoint is implemented.
+- Metadata callbacks for device creation and deletion are processed.
+
+Changes for 0.7.0 "Delhi":
+
+- Consul is supported for registration and configuration.
+  - New configuration option Service.CheckInterval controlling how frequently
+    the registry polls the device service for liveliness.
+  - Driver init functions get their configuration as a name-value pair list
+    rather than a TOML table.
+  - SDK start function now takes parameters for Consul's hostname and port. They
+    are no longer included in the configuration file.
+
+- "Discovery", "DataTransform" and "ReadMaxLimit" configuration options are now effective.
+- "OpenMsg" option replaced by "StartupMsg" for consistency with other services.
