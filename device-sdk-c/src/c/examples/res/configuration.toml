@@ -1,53 +1,72 @@
+[Writable]
+LogLevel = 'INFO'
+
 [Service]
-  Port = 49999
-  Timeout = 5000
-  ConnectRetries = 10
-  Labels = [ 'Template' ]
-  StartupMsg = 'Template device started'
-  CheckInterval = '10s'
+BootTimeout = 30000
+CheckInterval = '10s'
+Host = '172.17.0.1'  # set this to the IP address of the system host
+ServerBindAddr = ''  # blank value defaults to Service.Host value
+Port = 49992  #modified to be different than existing device services
+Protocol = 'http'
+StartupMsg = 'device simple started'
+Timeout = 20000
+ConnectRetries = 20
+Labels = []
+EnableAsyncReadings = true
+AsyncBufferSize = 16
+
+[Registry]
+Host = 'localhost'
+Port = 8500
+Type = 'consul'
 
 [Clients]
   [Clients.Data]
-    Host = 'localhost'
-    Port = 48080
+  Protocol = 'http'
+  Host = 'localhost'
+  Port = 48080
 
   [Clients.Metadata]
-    Host = 'localhost'
-    Port = 48081
+  Protocol = 'http'
+  Host = 'localhost'
+  Port = 48081
 
   [Clients.Logging]
-    Host = 'localhost'
-    Port = 48061
+  Protocol = 'http'
+  Host = 'localhost'
+  Port = 48061
+
 
 [Device]
   DataTransform = true
-  Discovery = false
   InitCmd = ''
   InitCmdArgs = ''
   MaxCmdOps = 128
-  MaxCmdResultLen = 256
+  MaxCmdValueLen = 256
   RemoveCmd = ''
   RemoveCmdArgs = ''
-  ProfilesDir = ''
-  SendReadingsOnChanged = true
+  ProfilesDir = './res'
+  UpdateLastConnected = false
+  [Device.Discovery]
+    Enabled = false
+    Interval = '30s'
 
+# Remote and file logging disabled so only stdout logging is used
 [Logging]
-  EnableRemote = false
-  File = '-'
-  LogLevel = 'DEBUG'
+EnableRemote = false
+File = ''
 
-[Driver]
-  TestParam1 = 'Hello'
-  TestParam2 = 'World'
-
+# Pre-define Devices
 [[DeviceList]]
-  Name = 'Device1'
-  Profile = 'TemplateSensor'
-  Description = 'An Example Template Device'
+  Name = 'RandNum-Device01'
+  Profile = 'RandNum-Device'
+  Description = 'Random Number Generator Device'
+  Labels = [ "random", "test" ]
   [DeviceList.Protocols]
     [DeviceList.Protocols.Other]
-      Address = 'someSensorEndpoint'
+      Address = 'random'
+      Port = '300'
   [[DeviceList.AutoEvents]]
-    Resource = 'SensorOne'
+    Resource = 'randomnumber'
     OnChange = false
     Frequency = '10s'
