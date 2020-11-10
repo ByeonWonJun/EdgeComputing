@@ -206,14 +206,17 @@ int main (int argc, char *argv[])
   //connect to database
   if (!mysql_real_connect(conn,server,user,password,database,0,NULL,0)){
   	fprint(stderr,"%s\n",mysql_error(conn));
-  	return(1);
+  	return 1;
   }
   
-  query_stat = mysql_query(mysql_real_connection, "select * from new_tracking.new_table");
+  query_stat = mysql_query(mysql_real_connection, "select * from new_tracking.new_test");
   if(query_stat != 0)
   {
   	fprintf(stderr, "Mysql query error : %s", mysql_error(conn));
+  	return 1;
   }
+  
+  
 
   template_driver * impl = malloc (sizeof (template_driver));
   memset (impl, 0, sizeof (template_driver));
