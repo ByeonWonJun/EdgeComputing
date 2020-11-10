@@ -9,6 +9,7 @@
  */
 
 #include "edgex/devsdk.h"
+#include "mysql.h"
 
 #include <unistd.h>
 #include <signal.h>
@@ -189,6 +190,18 @@ int main (int argc, char *argv[])
   edgex_device_svcparams params = { "device-template", NULL, NULL, NULL };
   sigset_t set;
   int sigret;
+  
+  MYSQL *conn;
+  MYSQL_RES *res;
+  MYSQL_ROW row;
+  
+  char *server = "localhost";
+  char *user = "root";
+  char *password = "78590q"
+  char *database = "new_tracking";
+  
+  conn = mysql_init(NULL); //connection Initializing variables
+  
 
   template_driver * impl = malloc (sizeof (template_driver));
   memset (impl, 0, sizeof (template_driver));
