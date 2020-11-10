@@ -202,6 +202,12 @@ int main (int argc, char *argv[])
   
   conn = mysql_init(NULL); //connection Initializing variables
   
+  //connect to database
+  if (!mysql_real_connect(conn,server,user,password,database,0,NULL,0)){
+  	fprint(stderr,"%s\n",mysql_error(conn));
+  	exit(1);
+  }
+  
 
   template_driver * impl = malloc (sizeof (template_driver));
   memset (impl, 0, sizeof (template_driver));
