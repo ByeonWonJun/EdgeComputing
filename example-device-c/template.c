@@ -199,15 +199,21 @@ int main (int argc, char *argv[])
   char *user = "root";
   char *password = "78590q"
   char *database = "new_tracking";
+  int query_stat;
   
   conn = mysql_init(NULL); //connection Initializing variables
   
   //connect to database
   if (!mysql_real_connect(conn,server,user,password,database,0,NULL,0)){
   	fprint(stderr,"%s\n",mysql_error(conn));
-  	exit(1);
+  	return(1);
   }
   
+  query_stat = mysql_query(mysql_real_connection, "select * from new_tracking.new_table");
+  if(query_stat != 0)
+  {
+  	fprintf(stderr, "Mysql query error : %s", mysql_error(conn));
+  }
 
   template_driver * impl = malloc (sizeof (template_driver));
   memset (impl, 0, sizeof (template_driver));
