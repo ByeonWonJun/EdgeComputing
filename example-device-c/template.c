@@ -16,6 +16,31 @@
 
 #define ERR_CHECK(x) if (x.code) { fprintf (stderr, "Error: %d: %s\n", x.code, x.reason); edgex_device_service_free (service); free (impl); return x.code; }
 
+  MYSQL *conn;
+  MYSQL_RES *res;
+  MYSQL_ROW row;
+  
+  char *server = "localhost";
+  char *user = "root";
+  char *password = "78590q"
+  char *database = "new_tracking";
+  int query_stat;
+  
+    conn = mysql_init(NULL); //connection Initializing variables
+  
+  //connect to database
+  if (!mysql_real_connect(conn,server,user,password,database,0,NULL,0)){
+  	fprint(stderr,"%s\n",mysql_error(conn));
+  	return 1;
+  }
+  
+  query_stat = mysql_query(mysql_real_connection, "select * from new_tracking.new_test");
+  if(query_stat != 0)
+  {
+  	fprintf(stderr, "Mysql query error : %s", mysql_error(conn));
+  	return 1;
+  }
+
 typedef struct template_driver
 {
   iot_logger_t * lc;
@@ -190,31 +215,6 @@ int main (int argc, char *argv[])
   edgex_device_svcparams params = { "device-template", NULL, NULL, NULL };
   sigset_t set;
   int sigret;
-  
-  MYSQL *conn;
-  MYSQL_RES *res;
-  MYSQL_ROW row;
-  
-  char *server = "localhost";
-  char *user = "root";
-  char *password = "78590q"
-  char *database = "new_tracking";
-  int query_stat;
-  
-  conn = mysql_init(NULL); //connection Initializing variables
-  
-  //connect to database
-  if (!mysql_real_connect(conn,server,user,password,database,0,NULL,0)){
-  	fprint(stderr,"%s\n",mysql_error(conn));
-  	return 1;
-  }
-  
-  query_stat = mysql_query(mysql_real_connection, "select * from new_tracking.new_test");
-  if(query_stat != 0)
-  {
-  	fprintf(stderr, "Mysql query error : %s", mysql_error(conn));
-  	return 1;
-  }
   
   
 
