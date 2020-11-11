@@ -9,7 +9,7 @@
  */
 
 #include "edgex/devsdk.h"
-#include "mysql.h"
+#include "/usr/include/mysql/mysql.h"
 
 #include <unistd.h>
 #include <signal.h>
