@@ -9,7 +9,10 @@
  */
 
 #include "edgex/devsdk.h"
-#include "/usr/include/mysql/mysql.h"
+#include </usr/include/mysql/mysql.h>
+
+#include <stdio.h>
+#include <stdlib.h>
 
 #include <unistd.h>
 #include <signal.h>
@@ -211,7 +214,7 @@ int main (int argc, char *argv[])
   	return 1;
   }
   
-  query_stat = mysql_query(mysql_real_connection, "select * from new_tracking.new_test");
+  query_stat = mysql_query(mysql_real_connect, "select * from new_tracking.new_test");
   if(query_stat != 0)
   {
   	fprintf(stderr, "Mysql query error : %s", mysql_error(conn));
