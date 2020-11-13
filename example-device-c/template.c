@@ -8,8 +8,9 @@
  *
  */
 
-#include </home/Desktop/edgex/EdgeComputing/device-sdk-c/include/devsdk/devsdk.h>
-#include </usr/include/mysql/mysql.h>
+#include "edgex/devsdk.h"
+
+#include "/usr/include/mysql/mysql.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -196,7 +197,7 @@ int main (int argc, char *argv[])
   sigset_t set;
   int sigret;
   
-    MYSQL *conn;
+  MYSQL *conn;
   MYSQL_RES *res;
   MYSQL_ROW row;
   
@@ -206,21 +207,21 @@ int main (int argc, char *argv[])
   char *database = "new_tracking";
   int query_stat;
   
-    conn = mysql_init(NULL); //connection Initializing variables
+  conn = mysql_init(NULL); //connection Initializing variables
   
   //connect to database
   if (!mysql_real_connect(conn,server,user,password,database,0,NULL,0)){
   	fprintf(stderr,"%s\n",mysql_error(conn));
   	return 1;
   }
-  
+  /*
   query_stat = mysql_query(mysql_real_connect, "select * from new_tracking.new_test");
   if(query_stat != 0)
   {
   	fprintf(stderr, "Mysql query error : %s", mysql_error(conn));
   	return 1;
   }
-  
+  */
 
   template_driver * impl = malloc (sizeof (template_driver));
   memset (impl, 0, sizeof (template_driver));
