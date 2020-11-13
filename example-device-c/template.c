@@ -8,7 +8,7 @@
  *
  */
 
-#include "edgex/devsdk.h"
+#include </home/Desktop/edgex/EdgeComputing/device-sdk-c/include/devsdk/devsdk.h>
 #include </usr/include/mysql/mysql.h>
 
 #include <stdio.h>
