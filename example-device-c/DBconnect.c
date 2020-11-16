@@ -28,7 +28,8 @@ void main(){
 	printf("mysql_real_connect sucsess.\n");
 	
 	if(mysql_query(conn,"INSERT INTO new_tracking.new_table VALUES(1,2)")){
-		finish_with_error(conn);	
+		mysql_close(conn);
+		exit(1);	
 
 	}
 /*
