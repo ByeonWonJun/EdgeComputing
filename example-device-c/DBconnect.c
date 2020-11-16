@@ -25,4 +25,13 @@ void main(){
 		return 1;
 	}
 
+	print("mysql_real_connect sucsess.\n");
+
+	if(mysql_select_db(conn,datasae)!=0){
+		mysql_close(conn);
+		printf("select_db fail.\n");
+		return 1;
+	}
+	printf("select db sucess.\n");
+
 }
