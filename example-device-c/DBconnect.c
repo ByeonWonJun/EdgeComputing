@@ -19,6 +19,10 @@ void main(){
 	}
 
 	print("mysql_init sucsess.\n");
-
 	
+	if(mysql_real_connect(conn,server,user,password,NULL,3306,NULL,0)){
+		printf("connect error.\n");
+		return 1;
+	}
+
 }
