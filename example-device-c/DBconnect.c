@@ -32,7 +32,7 @@ void main(){
 		printf("select_db fail.\n");
 		return 1;
 	}
-	printf("select db sucess.\n");
+	printf("select db sucsess.\n");
 
 	if(mysql_query(conn,"select* from new_tracking.new_table")){
 		printf("query fail\n");
@@ -40,4 +40,9 @@ void main(){
 	}
 
 	printf("query fail\n");
+
+	res = mysql_store_result(conn);
+	printf("res sucsess\n");
+
+	mysql_close(conn);
 }
