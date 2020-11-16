@@ -10,7 +10,7 @@
 
 #include "edgex/devsdk.h"
 
-#include "/usr/include/mysql/mysql.h"
+#include </usr/include/mysql/mysql.h>
 
 #include <stdio.h>
 #include <stdlib.h>
