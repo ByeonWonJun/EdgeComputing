@@ -34,4 +34,10 @@ void main(){
 	}
 	printf("select db sucess.\n");
 
+	if(mysql_query(conn,"select* from new_tracking.new_table")){
+		printf("query fail\n");
+		return 1;
+	}
+
+	printf("query fail\n");
 }
