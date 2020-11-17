@@ -10,7 +10,7 @@ void main(){
 
 	char *server = "localhost";
 	char *usr = "root";
-	char *password = "78590q";
+	char *password = "";
 	char *database = "new_tracking";
 
 	if(!(conn=mysql_init((MYSQL*)NULL))){
@@ -27,7 +27,7 @@ void main(){
 
 	printf("mysql_real_connect sucsess.\n");
 	
-	if(mysql_query(conn,"INSERT INTO new_tracking.new_table VALUES(1,2)")){
+	if(mysql_query(conn,"INSERT INTO new_tracking.test VALUES(1,2)")){
 		mysql_close(conn);
 		exit(1);	
 
