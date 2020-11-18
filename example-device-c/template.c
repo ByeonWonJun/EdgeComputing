@@ -94,6 +94,8 @@ static bool template_get_handler
 )
 {
   template_driver *driver = (template_driver *) impl;
+  
+  
 
   /* Access the location of the device to be accessed and log it */
   iot_log_debug(driver->lc, "GET on device:");
@@ -149,7 +151,31 @@ static bool template_put_handler
   const edgex_device_commandresult *values
 )
 {
+
   template_driver *driver = (template_driver *) impl;
+  
+ char *server = "localhost";
+ char *usr = "root";
+ char *password = "78590q";
+ char *database = "new_tracking";
+  
+  MYSQL *conn;
+  MYSQL_RES *res;
+  MYSQL_ROW row;
+  
+  conn = mysql_init(NULL);
+	
+	if(conn == NULL){
+		printf("no");
+		exit(1);
+	}
+	
+	if(mysql_real_connect(conn, server, usr, password, database,0,NULL,0) == NULL){
+		printf("error");
+		exit(1);
+	}
+
+	
 
   /* Access the location of the device to be accessed and log it */
   iot_log_debug (driver->lc, "PUT on device:");
@@ -165,9 +191,18 @@ static bool template_put_handler
     {
       case String:
         iot_log_debug (driver->lc, "  Value: %s", values[i].value.string_result);
+        if(mysql_query(conn, "INSERT INTO new_tracking.test (name,number) VALUES (values,%s)",values[i].value.string_result)){
+		printf("error 2 : %s\n", mysql_error(conn));
+		exit(1);
+	}
+	
         break;
       case Uint64:
         iot_log_debug (driver->lc, "  Value: %lu", values[i].value.ui64_result);
+        if(mysql_query(conn, "INSERT INTO new_tracking.test (name,number) VALUES (values,%lu)",values[i].value.string_result)){
+		printf("error 2 : %s\n", mysql_error(conn));
+		exit(1);
+	}
         break;
       case Bool:
         iot_log_debug (driver->lc, "  Value: %s", values[i].value.bool_result ? "true" : "false");
@@ -196,7 +231,7 @@ int main (int argc, char *argv[])
   edgex_device_svcparams params = { "device-template", NULL, NULL, NULL };
   sigset_t set;
   int sigret;
- /* 
+ /*
  char *server = "localhost";
  char *usr = "root";
  char *password = "78590q";
@@ -223,6 +258,8 @@ int main (int argc, char *argv[])
 		printf("error 2 : %s\n", mysql_error(conn));
 		exit(1);
 	}
+	
+
 */
   template_driver * impl = malloc (sizeof (template_driver));
   memset (impl, 0, sizeof (template_driver));
@@ -281,6 +318,7 @@ int main (int argc, char *argv[])
   edgex_device_service_stop (service, true, &e);
   ERR_CHECK (e);
 
+  mysql_close(conn);
   edgex_device_service_free (service);
   free (impl);
   return 0;
