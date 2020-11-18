@@ -138,8 +138,7 @@ static bool template_get_handler
         readings[i].type = Edgex_Uint8;
         /* Set the reading as a random value between 0 and 100 */
         readings[i].value.ui8_result = rand() % 100;
-        
-        
+         
         sprintf(query, "INSERT INTO new_tracking.test (name,number) VALUES ('values',%d)",readings[i].value.ui8_result);
         mysql_query(conn, query);
         /*
@@ -239,36 +238,7 @@ int main (int argc, char *argv[])
   edgex_device_svcparams params = { "device-template", NULL, NULL, NULL };
   sigset_t set;
   int sigret;
- /*
- char *server = "localhost";
- char *usr = "root";
- char *password = "78590q";
- char *database = "new_tracking";
-  
-  MYSQL *conn;
-  MYSQL_RES *res;
-  MYSQL_ROW row;
-  
-  conn = mysql_init(NULL);
-	
-	if(conn == NULL){
-		printf("no");
-		exit(1);
-	}
-	
-	if(mysql_real_connect(conn, server, usr, password, database,0,NULL,0) == NULL){
-		printf("error");
-		exit(1);
-	}
-	printf("connect \n");
-	
-	if(mysql_query(conn, "INSERT INTO new_tracking.test (name,number) VALUES ('44','44')")){
-		printf("error 2 : %s\n", mysql_error(conn));
-		exit(1);
-	}
-	
-
-*/
+ 
   template_driver * impl = malloc (sizeof (template_driver));
   memset (impl, 0, sizeof (template_driver));
 
