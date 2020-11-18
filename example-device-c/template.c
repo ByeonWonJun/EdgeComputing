@@ -99,7 +99,8 @@ static bool template_get_handler
   char *usr = "root";
   char *password = "78590q";
   char *database = "new_tracking";
-  
+  char query[100];
+  char number[100];
 
   MYSQL *conn;
   MYSQL_RES *res;
@@ -116,6 +117,8 @@ static bool template_get_handler
 		printf("error");
 		exit(1);
 	}
+	
+	
 
   
 
@@ -126,19 +129,25 @@ static bool template_get_handler
   for (uint32_t i = 0; i < nreadings; i++)
 {
     const char *rdtype = edgex_nvpairs_value (requests[i].attributes, "type");
+
     if (rdtype)
     {
         if (strcmp (rdtype, "random") == 0)
         {
         /* Set the resulting reading type as Uint64 */
-        readings[i].type = Edgex_Uint64;
+        readings[i].type = Edgex_Uint8;
         /* Set the reading as a random value between 0 and 100 */
-        readings[i].value.ui64_result = rand() % 100;
+        readings[i].value.ui8_result = rand() % 100;
         
-        if(mysql_query(conn, "INSERT INTO new_tracking.test (name,number) VALUES ('values','readings[i].value.ui64_result')")){
+        
+        sprintf(query, "INSERT INTO new_tracking.test (name,number) VALUES ('values',%d)",readings[i].value.ui8_result);
+        mysql_query(conn, query);
+        /*
+        if(mysql_query(conn, "INSERT INTO new_tracking.test (name,number) VALUES ('values','%s')")){
 		printf("error 2 : %s\n", mysql_error(conn));
 		exit(1);
 	}
+	*/	
         }
         else
         {
@@ -152,6 +161,7 @@ static bool template_get_handler
         return false;
     }
 }
+mysql_close(conn);
 return true;
 
 }
@@ -199,8 +209,8 @@ static bool template_put_handler
       case String:
         iot_log_debug (driver->lc, "  Value: %s", values[i].value.string_result);
         break;
-      case Uint64:
-        iot_log_debug (driver->lc, "  Value: %lu", values[i].value.ui64_result);
+      case Uint8:
+        iot_log_debug (driver->lc, "  Value: %d", values[i].value.ui8_result);
         break;
       case Bool:
         iot_log_debug (driver->lc, "  Value: %s", values[i].value.bool_result ? "true" : "false");
