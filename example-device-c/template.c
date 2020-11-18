@@ -95,6 +95,28 @@ static bool template_get_handler
 {
   template_driver *driver = (template_driver *) impl;
   
+  char *server = "localhost";
+  char *usr = "root";
+  char *password = "78590q";
+  char *database = "new_tracking";
+  
+
+  MYSQL *conn;
+  MYSQL_RES *res;
+  MYSQL_ROW row;
+  
+
+	conn = mysql_init(NULL);
+	if(conn == NULL){
+		printf("no");
+		exit(1);
+	}
+	
+	if(mysql_real_connect(conn, server, usr, password, database,0,NULL,0) == NULL){
+		printf("error");
+		exit(1);
+	}
+
   
 
   /* Access the location of the device to be accessed and log it */
@@ -112,6 +134,11 @@ static bool template_get_handler
         readings[i].type = Edgex_Uint64;
         /* Set the reading as a random value between 0 and 100 */
         readings[i].value.ui64_result = rand() % 100;
+        
+        if(mysql_query(conn, "INSERT INTO new_tracking.test (name,number) VALUES ('values','readings[i].value.ui64_result')")){
+		printf("error 2 : %s\n", mysql_error(conn));
+		exit(1);
+	}
         }
         else
         {
@@ -149,33 +176,13 @@ static bool template_put_handler
   uint32_t nvalues,
   const edgex_device_commandrequest *requests,
   const edgex_device_commandresult *values
+  
 )
 {
 
   template_driver *driver = (template_driver *) impl;
   
- char *server = "localhost";
- char *usr = "root";
- char *password = "78590q";
- char *database = "new_tracking";
   
-  MYSQL *conn;
-  MYSQL_RES *res;
-  MYSQL_ROW row;
-  
-  conn = mysql_init(NULL);
-	
-	if(conn == NULL){
-		printf("no");
-		exit(1);
-	}
-	
-	if(mysql_real_connect(conn, server, usr, password, database,0,NULL,0) == NULL){
-		printf("error");
-		exit(1);
-	}
-
-	
 
   /* Access the location of the device to be accessed and log it */
   iot_log_debug (driver->lc, "PUT on device:");
@@ -191,18 +198,9 @@ static bool template_put_handler
     {
       case String:
         iot_log_debug (driver->lc, "  Value: %s", values[i].value.string_result);
-        if(mysql_query(conn, "INSERT INTO new_tracking.test (name,number) VALUES (values,%s)",values[i].value.string_result)){
-		printf("error 2 : %s\n", mysql_error(conn));
-		exit(1);
-	}
-	
         break;
       case Uint64:
         iot_log_debug (driver->lc, "  Value: %lu", values[i].value.ui64_result);
-        if(mysql_query(conn, "INSERT INTO new_tracking.test (name,number) VALUES (values,%lu)",values[i].value.string_result)){
-		printf("error 2 : %s\n", mysql_error(conn));
-		exit(1);
-	}
         break;
       case Bool:
         iot_log_debug (driver->lc, "  Value: %s", values[i].value.bool_result ? "true" : "false");
@@ -318,7 +316,7 @@ int main (int argc, char *argv[])
   edgex_device_service_stop (service, true, &e);
   ERR_CHECK (e);
 
-  mysql_close(conn);
+
   edgex_device_service_free (service);
   free (impl);
   return 0;
