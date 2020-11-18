@@ -10,9 +10,29 @@ void main(){
 
 	char *server = "localhost";
 	char *usr = "root";
-	char *password = "";
+	char *password = "78590q";
 	char *database = "new_tracking";
 
+
+	conn = mysql_init(NULL);
+	
+	if(conn == NULL){
+		printf("no");
+		exit(1);
+	}
+	
+	if(mysql_real_connect(conn, server, usr, password, database,0,NULL,0) == NULL){
+		printf("error");
+		exit(1);
+	}
+	printf("connect \n");
+	
+	if(mysql_query(conn, "INSERT INTO new_tracking.test (name,number) VALUES ('33','33')")){
+		printf("error 2 : %s\n", mysql_error(conn));
+		exit(1);
+	}
+	
+/*
 	if(!(conn=mysql_init((MYSQL*)NULL))){
 		printf("init fail\n");
 		exit(1);
@@ -27,11 +47,8 @@ void main(){
 
 	printf("mysql_real_connect sucsess.\n");
 	
-	if(mysql_query(conn,"INSERT INTO new_tracking.test VALUES(1,2)")){
-		mysql_close(conn);
-		exit(1);	
-
-	}
+	mysql_query(conn,"INSERT INTO `new_tracking`.`test` (`name`, `number`) VALUES ('22', '22')");
+*/
 /*
 	if(mysql_select_db(conn,database)!=0){
 		mysql_close(conn);
