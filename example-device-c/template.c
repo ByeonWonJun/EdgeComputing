@@ -206,7 +206,7 @@ static bool template_put_handler
         iot_log_debug (driver->lc, "  Value: %s", values[i].value.string_result);
         break;
       case Uint8:
-        iot_log_debug (driver->lc, "  Valuellll: %d", values[i].value.ui8_result);
+        iot_log_debug (driver->lc, "  Value: %d", values[i].value.ui8_result);
         break;
       case Bool:
         iot_log_debug (driver->lc, "  Value: %s", values[i].value.bool_result ? "true" : "false");
