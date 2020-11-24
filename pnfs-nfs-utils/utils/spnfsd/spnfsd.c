@@ -218,6 +218,9 @@ main(int argc, char **argv)
 	strlcpy(pipefsdir, PIPEFS_DIR, sizeof(pipefsdir));
 	strlcpy(dsmountdir, DSMOUNT_DIR, sizeof(dsmountdir));
 	strlcpy(sc.sc_path, PIPEFS_DIR, sizeof(sc.sc_path));
+	
+	printf("\nsc.sc_path test by Nuri....11/24 7:34\n");
+	printf("%s\n\n", sc.sc_path);
 
 	if ((progname = strrchr(argv[0], '/')))
 		progname++;
@@ -310,27 +313,39 @@ main(int argc, char **argv)
 
 /* DMXXX in case I forget -f while testing... */
 fg = 1;
-	if (!fg)
+	if (!fg){
+		printf("Test by nuri....11/24 5:53\n");
 		mydaemon(0, 0);
+	}
 
 	event_init();
+	printf("Test by nuri....11/24 5:55\n");
 
 	if (verbose > 0)
 		spnfsd_warnx("Expiration time is %d seconds.",
 			     cache_entry_expiration);
 
 	if ((sc.sc_fd = open(sc.sc_path, O_RDWR, 0)) == -1) {
+		printf("Test by nuri....11/24 6:00_yes\n");
 		perror("spnfsd open file");
 	} else {
+		printf("Test by nuri....11/24 6:00_no\n");
 		event_set(&sc.sc_event, sc.sc_fd, EV_READ, spnfscb, &sc);
 		event_add(&sc.sc_event, NULL);
 	}
 
+	printf("Test by nuri....11/24 6:12_1\n");
+
 	release_parent();
+
+	printf("Test by nuri....11/24 6:12_2\n");
+	
+	//Stopping at event_dispatch()
 
 	if (event_dispatch() < 0)
 		spnfsd_errx(1, "main: event_dispatch returns errno %d (%s)",
 			    errno, strerror(errno));
+	
 	/* NOTREACHED */
 	return 1;
 }
@@ -342,42 +357,55 @@ spnfs_msg_handler(struct spnfs_client *scp, struct spnfs_msg *im)
 
 	switch (im->im_type) {
 	case SPNFS_TYPE_LAYOUTGET:
+		printf("LAYOUTGET - test by nuri\n"); 
 		err = spnfsd_layoutget(im);
 		break;
 	case SPNFS_TYPE_LAYOUTCOMMIT:
+		printf("LAYOUTCOMMIT - test by nuri\n");
 		err = spnfsd_layoutcommit(im);
 		break;
 	case SPNFS_TYPE_LAYOUTRETURN:
+		printf("LAYOUTRETURN - test by nuri\n");
 		err = spnfsd_layoutreturn(im);
 		break;
 	case SPNFS_TYPE_GETDEVICEITER:
+		printf("GETDEVICEITER - test by nuri\n");
 		err = spnfsd_getdeviceiter(im);
 		break;
 	case SPNFS_TYPE_GETDEVICEINFO:
+		printf("GETDEVICEINFO - test by nuri\n");
 		err = spnfsd_getdeviceinfo(im);
 		break;
 	case SPNFS_TYPE_SETATTR:
+		printf("SETATTR - test by nuri\n");
 		err = spnfsd_setattr(im);
 		break;
 	case SPNFS_TYPE_OPEN:
+		printf("OPEN - test by nuri\n");
 		err = spnfsd_open(im);
 		break;
 	case SPNFS_TYPE_CLOSE:
+		printf("CLOSE - test by nuri\n");
 		err = spnfsd_close(im);
 		break;
 	case SPNFS_TYPE_CREATE:
+		printf("CREATE - test by nuri\n");
 		err = spnfsd_create(im);
 		break;
 	case SPNFS_TYPE_REMOVE:
+		printf("REMOVE - test by nuri\n");
 		err = spnfsd_remove(im);
 		break;
 	case SPNFS_TYPE_COMMIT:
+		printf("COMMIT - test by nuri\n");
 		err = spnfsd_commit(im);
 		break;
 	case SPNFS_TYPE_READ:
+		printf("READ - test by nuri\n");
 		err = spnfsd_read(im);
 		break;
 	case SPNFS_TYPE_WRITE:
+		printf("WRITE - test by nuri\n");
 		err = spnfsd_write(im);
 		break;
 	default:
@@ -395,6 +423,8 @@ spnfscb(int fd, short which, void *data)
 	struct spnfs_client *scp = data;
 	struct spnfs_msg im;
 	int rval;
+
+	printf("spnfscb Test by nuri....11/24 9:37\n");
 
 	if (which != EV_READ)
 		goto out;

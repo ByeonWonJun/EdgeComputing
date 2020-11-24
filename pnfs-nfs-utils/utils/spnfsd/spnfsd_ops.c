@@ -357,6 +357,8 @@ spnfsd_write(struct spnfs_msg *im)
 	char fullpath[1024]; /* DMXXX */
 	int fd, err;
 	int completed = 0;
+	
+	printf("Hello~~~~~...test by nuri 11/24 8:05\n");
 
 	im->im_status = SPNFS_STATUS_SUCCESS;
 	im->im_res.write_res.status = 0;
