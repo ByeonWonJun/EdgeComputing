@@ -205,6 +205,8 @@ main(int argc, char **argv)
 	struct stat sb;
 	int rc, fd, cmd = 1;
 	int i;
+	char nuri[128];
+	int nuri_rc;
 
 	fd = open("/proc/fs/spnfs/ctl", O_WRONLY);
 	if (fd < 0)
@@ -247,8 +249,10 @@ main(int argc, char **argv)
 		conf_init();
 		if (read_config() != 0)
 			spnfsd_err(1, "Invalid config file\n");
-		if (verbose)
+		if (verbose){
 			dump_config();
+			printf("Test by Nuri....11/24 3:34\n");
+		}
 	}
 
 	while ((opt = getopt(argc, argv, GETOPTSTR)) != -1)
@@ -270,14 +274,24 @@ main(int argc, char **argv)
 	strncat(pipefsdir, "/nfs", sizeof(pipefsdir));
 	strncat(sc.sc_path, "/nfs/spnfs", sizeof(sc.sc_path));
 	memcpy(pipefspath, sc.sc_path, sizeof(pipefspath));
+	
+	printf("\n\nTest by Nuri.....11/24 3:36_1\n");	
 
 	spnfs_config.stripe_size = stripesize;
 	spnfs_config.dense_striping = densestriping;
 	spnfs_config.num_ds = num_ds;
+	
+	printf("stripesize : %d\n", stripesize);
+	printf("densestriping : %d\n", densestriping);
+	printf("num_ds : %d\n", num_ds);
 
-	for (i = 0; i < num_ds; i++)
+	for (i = 0; i < num_ds; i++){
 		sprintf(spnfs_config.ds_dir[i], "%s/%s",
 			dsmountdir, dataservers[i].ds_ip);
+		printf("spnfs_config.ds_dir[%d] %s\n", i, spnfs_config.ds_dir[i]);
+	}
+
+	printf("Test by Nuri.....11/24 3:36_2\n\n");
 
 	fd = open("/proc/fs/spnfs/config", O_WRONLY);
 	if (fd < 0)
@@ -289,9 +303,12 @@ main(int argc, char **argv)
 
 	signal(SIGHUP, send_invalid_msg);
 
+	printf("Test by nuri....11/24 5:04_1\n");
+
 	if (do_mounts() != 0)
 		spnfsd_err(1, "Mounting DSs failed\n");
 
+	printf("Test by nuri....11/24 5:04_2\n");
 
 /* DMXXX in case I forget -f while testing... */
 fg = 1;
@@ -547,6 +564,8 @@ do_mounts()
 {
 	int ds;
 	char cmd[1024];
+	
+	printf("Mount start by nuri....11/24_1 5:08\n");
 
 	return 0;
 	for (ds = 0 ; ds < num_ds ; ds++) {
@@ -565,6 +584,8 @@ send_invalid_msg(int signum)
 {
 	struct spnfs_msg im;
 	int fd, rval;
+	
+	printf("Send invalid_msg test by nuri....11/24 5:02\n");
 
 	im.im_status = SPNFS_STATUS_FAIL;
 
