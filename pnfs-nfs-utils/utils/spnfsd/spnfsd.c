@@ -205,8 +205,6 @@ main(int argc, char **argv)
 	struct stat sb;
 	int rc, fd, cmd = 1;
 	int i;
-	char nuri[128];
-	int nuri_rc;
 
 	fd = open("/proc/fs/spnfs/ctl", O_WRONLY);
 	if (fd < 0)
