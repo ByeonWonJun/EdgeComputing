@@ -67,6 +67,7 @@ spnfsd_layoutget(struct spnfs_msg *im)
 			dsmountdir, dataservers[ds].ds_ip,
 		        im->im_args.layoutget_args.inode,
 		        im->im_args.layoutget_args.generation);
+
 		rc = spnfsd_getfh(fullpath,
 				  im->im_res.layoutget_res.flist[ds].fh_val,
 				  &im->im_res.layoutget_res.flist[ds].fh_len);
@@ -83,7 +84,15 @@ spnfsd_layoutget(struct spnfs_msg *im)
 		 */
 		im->im_res.layoutget_res.flist[ds].fh_val[2] += 8;
 	}
+		
+	printf("[+] Send_DB Start\n");	
+	printf("fileName : %lu.%lu\n", im->im_args.layoutget_args.inode, im->im_args.layoutget_args.generation);
 
+	for (ds = 0 ; ds < num_ds ; ds++)
+		printf("dataservers[%d].ds_ip = %s\n", ds, dataservers[ds].ds_ip);
+
+	printf("[+] Send_DB End\n\n");
+	
 	return 0;
 }
 
@@ -265,6 +274,9 @@ spnfsd_remove(struct spnfs_msg *im)
 			dataservers[ds].ds_ip, basename);
 		unlink(fullpath);
 	}
+	printf("[+] Remove_DB Start\n");
+	printf("Success Remove %lu.%lu\n", im->im_args.remove_args.inode, im->im_args.remove_args.generation);
+	printf("[+] Remove_DB End\n\n");
 
 	return 0;
 }
@@ -357,8 +369,6 @@ spnfsd_write(struct spnfs_msg *im)
 	char fullpath[1024]; /* DMXXX */
 	int fd, err;
 	int completed = 0;
-	
-	printf("Hello~~~~~...test by nuri 11/24 8:05\n");
 
 	im->im_status = SPNFS_STATUS_SUCCESS;
 	im->im_res.write_res.status = 0;
