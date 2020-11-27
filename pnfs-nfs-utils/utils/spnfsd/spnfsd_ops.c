@@ -50,6 +50,9 @@ spnfsd_layoutget(struct spnfs_msg *im)
 	int ds;
 	int rc;
 	char fullpath[1024]; /* MSXXX */
+	char filename[100];
+	char DS_IP[100];
+	char comm[100]; //command
 
 	im->im_status = SPNFS_STATUS_SUCCESS;
 	im->im_res.layoutget_res.status = 0;
@@ -84,14 +87,14 @@ spnfsd_layoutget(struct spnfs_msg *im)
 		 */
 		im->im_res.layoutget_res.flist[ds].fh_val[2] += 8;
 	}
-		
-	printf("[+] Send_DB Start\n");	
-	printf("fileName : %lu.%lu\n", im->im_args.layoutget_args.inode, im->im_args.layoutget_args.generation);
+			
+	sprintf(filename, "%lu.%lu", im->im_args.layoutget_args.inode, im->im_args.layoutget_args.generation);
 
-	for (ds = 0 ; ds < num_ds ; ds++)
-		printf("dataservers[%d].ds_ip = %s\n", ds, dataservers[ds].ds_ip);
-
-	printf("[+] Send_DB End\n\n");
+	for (ds = 0 ; ds < num_ds ; ds++){
+		sprintf(DS_IP,"%s", dataservers[ds].ds_ip);
+		sprintf(comm, "/root/EdgeComputing/pnfs-nfs-utils/utils/spnfsd/send_DB %s %s", filename, DS_IP);
+		system(comm);
+	}
 	
 	return 0;
 }
