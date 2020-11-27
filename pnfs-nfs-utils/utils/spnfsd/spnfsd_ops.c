@@ -50,6 +50,7 @@ spnfsd_layoutget(struct spnfs_msg *im)
 	int ds;
 	int rc;
 	char fullpath[1024]; /* MSXXX */
+	//-----------------------------
 	char filename[100];
 	char DS_IP[100];
 	char comm[100]; //command
@@ -266,20 +267,26 @@ spnfsd_remove(struct spnfs_msg *im)
 	char basename[1024]; /* DMXXX */
 	char fullpath[1024]; /* DMXXX */
 	int ds;
+	//-----------------------------
+	char filename[100];
+	char DS_IP[100];
+	char comm[100]; //command
 
 	im->im_status = SPNFS_STATUS_SUCCESS;
 	im->im_res.remove_res.status = 0;
 	sprintf(basename, "%lu.%lu", im->im_args.remove_args.inode,
 				im->im_args.remove_args.generation);
+	sprintf(filename, "%lu.%lu", im->im_args.layoutget_args.inode, im->im_args.layoutget_args.generation);
 
 	for (ds = 0 ; ds < num_ds ; ds++) {
 		sprintf(fullpath, "%s/%s/%s", dsmountdir,
 			dataservers[ds].ds_ip, basename);
 		unlink(fullpath);
+
+		sprintf(DS_IP,"%s", dataservers[ds].ds_ip);
+		sprintf(comm, "/root/EdgeComputing/pnfs-nfs-utils/utils/spnfsd/remove_DB %s %s", filename, DS_IP);
+		system(comm);
 	}
-	printf("[+] Remove_DB Start\n");
-	printf("Success Remove %lu.%lu\n", im->im_args.remove_args.inode, im->im_args.remove_args.generation);
-	printf("[+] Remove_DB End\n\n");
 
 	return 0;
 }
