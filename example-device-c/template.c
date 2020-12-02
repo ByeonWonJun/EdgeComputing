@@ -99,7 +99,7 @@ static bool template_get_handler
   
   char *server = "localhost";
   char *usr = "root";
-  char *password = "78590q";
+  char *password = "pw";
   char *database = "new_tracking";
   char query[100];
   char number[100];
