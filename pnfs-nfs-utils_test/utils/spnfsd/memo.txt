@@ -7,19 +7,7 @@
 - 일단 처음으로 /utils/spnfsd/Makefile.am 파일을 확인해보았음
 //-------------------------------------------------------------------
 ## Process this file with automake to produce Makefile.in
-
-man5_MANS	=
-man8_MANS	=
-
-RPCPREFIX	=
-KPREFIX		= @kprefix@
-sbin_PROGRAMS	= spnfsd
-
-EXTRA_DIST = \
-	$(man5_MANS) \
-	$(man8_MANS) \
-	spnfsd.conf
-
+...........
 spnfsd_SOURCES = \
 	atomicio.c \
 	spnfsd_ops.c \
@@ -34,6 +22,5 @@ spnfsd_SOURCES = \
 	queue.h
 
 spnfsd_LDADD = -levent ../../support/nfs/libnfs.a
-
-MAINTAINERCLEANFILES = Makefile.in
+..................
 //-----------------------------------------------------------------
