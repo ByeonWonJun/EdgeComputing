@@ -32,23 +32,7 @@ void main(){
 		exit(1);
 	}
 	
-/*
-	if(!(conn=mysql_init((MYSQL*)NULL))){
-		printf("init fail\n");
-		exit(1);
-	}
 
-	printf("mysql_init sucsess.\n");
-	
-	if(mysql_real_connect(conn,server,usr,password,NULL,3306,NULL,0)){
-		printf("connect error.\n");
-		exit(1);
-	}
-
-	printf("mysql_real_connect sucsess.\n");
-	
-	mysql_query(conn,"INSERT INTO `new_tracking`.`test` (`name`, `number`) VALUES ('22', '22')");
-*/
 /*
 	if(mysql_select_db(conn,database)!=0){
 		mysql_close(conn);
