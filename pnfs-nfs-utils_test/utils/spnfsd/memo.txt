@@ -12,7 +12,7 @@ spnfsd_SOURCES = \		-> 해당 부분에서 c파일을 o파일로 변환하는것
 	atomicio.c \
 	spnfsd_ops.c \
 	cfg.c \
-	spnfsd.c \
+	spnfsd.c \	-> 이부분
 	strlcat.c \
 	strlcpy.c \
 	\
