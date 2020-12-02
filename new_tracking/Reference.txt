@@ -2,10 +2,12 @@ test.ibd
 Table
 --------------------
  id / name / number
+ INT/VARCHAR(20)/INT
 --------------------
 
 tracking.ibd
 Table
 -----------------------------------------------------------------------------------
 Object_id/Device_id/User_id/Edge_DS/Edge_MDS/Edge_node/Cloud_DS/Cloud_MDS/Date/Time
+VARCHAR(45)/VARCHAR(45)/VARCHAR(10)/VARCHAR(45)/VARCHAR(45)/VARCHAR(45)/VARCHAR(45)/VARCHAR(45)/VARCHAR(10)/VARCHAR(20)
 -----------------------------------------------------------------------------------
