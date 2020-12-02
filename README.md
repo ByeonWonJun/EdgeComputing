@@ -1,6 +1,9 @@
 EdgeXFoundry source code and database table
+
 // EdgeX-Mysql - connect between device-example and database
+
 // pNFS - NFS (Currently, pNFS uses SpNFS)
-// pNFS - Mysql
+
+// pNFS(spNFS) - Mysql
 
 
