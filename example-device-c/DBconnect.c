@@ -33,25 +33,6 @@ void main(){
 	}
 	
 
-/*
-	if(mysql_select_db(conn,database)!=0){
-		mysql_close(conn);
-		printf("select_db fail.\n");
-		exit(1);
-	}
-	printf("select db sucsess.\n");
-*/
-/*
-	if(mysql_query(conn,"select* from new_tracking.new_table")){
-		printf("query fail\n");
-		exit(1);
-	}
 
-	printf("query fail\n");
-*/
-/*
-	res = mysql_store_result(conn);
-	printf("res sucsess\n");
-*/
 	mysql_close(conn);
 }
