@@ -45,7 +45,7 @@ usage.
 
 ### Building with docker
 
-To build the SDK in a docker image, run the following command:
+To build the SDK in a docker image, run the following command :
 
 `make docker`
 
