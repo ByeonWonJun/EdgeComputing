@@ -10,7 +10,7 @@ void main(){
 
 	char *server = "localhost";
 	char *usr = "root";
-	char *password = "78590q";
+	char *password = "p/w";
 	char *database = "new_tracking";
 
 
