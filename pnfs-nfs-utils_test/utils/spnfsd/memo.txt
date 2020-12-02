@@ -15,7 +15,7 @@ spnfsd_SOURCES = \		-> 해당 부분에서 c파일을 o파일로 변환하는것
 	spnfsd.c \	-> 이 부분
 	strlcat.c \
 	strlcpy.c \
-	\
+	\	-> 헤더 파일의 용도는 잘 모르겠음
 	cfg.h \
 	spnfsd.h \
 	spnfsd_queue.h \
