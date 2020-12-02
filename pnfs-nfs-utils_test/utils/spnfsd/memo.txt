@@ -1,1 +1,2 @@
 makestatic -> use **.o file.. (여러가지 object file을 모아서 spnfsd 파일을 생성)
+  (**.o파일을 컴파일하여 spnfsd 파일을 생성)
