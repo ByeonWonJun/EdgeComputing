@@ -18,6 +18,8 @@
 #include <unistd.h>
 #include <signal.h>
 
+#include <time.h>
+
 #define ERR_CHECK(x) if (x.code) { fprintf (stderr, "Error: %d: %s\n", x.code, x.reason); edgex_device_service_free (service); free (impl); return x.code; }
 
 
