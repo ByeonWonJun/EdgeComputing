@@ -8,7 +8,7 @@
 //-------------------------------------------------------------------
 ## Process this file with automake to produce Makefile.in
 ...........
-spnfsd_SOURCES = \
+spnfsd_SOURCES = \		-> 해당 부분에서 c파일을 o파일로 변환하는것이 아닐까 추측중
 	atomicio.c \
 	spnfsd_ops.c \
 	cfg.c \
