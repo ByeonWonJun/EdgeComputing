@@ -21,6 +21,6 @@ spnfsd_SOURCES = \		-> 해당 부분에서 c파일을 o파일로 변환하는것
 	spnfsd_queue.h \
 	queue.h
 
-spnfsd_LDADD = -levent ../../support/nfs/libnfs.a
+spnfsd_LDADD = -levent ../../support/nfs/libnfs.a	-> 그러면 해당부분에 파일을 추가하면 될까나??
 ..................
 //-----------------------------------------------------------------
