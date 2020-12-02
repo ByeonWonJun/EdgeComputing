@@ -4,3 +4,4 @@ makestatic -> use **.o file.. (여러가지 object file을 모아서 spnfsd 파�
 -> 2. object file은 혹시 gcc에 `mysql_config --libs`를 안붙이고 생성할수 있나? -> 확인결과 안됨
 
 object file을 생성하는 위치
+- 일단 처음으로 /utils/spnfsd/Makefile.am 파일을 확인해보았음
