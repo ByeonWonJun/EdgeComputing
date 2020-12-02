@@ -4,3 +4,8 @@ Table
  id / name / number
 --------------------
 
+tracking.ibd
+Table
+-----------------------------------------------------------------------------------
+Object_id/Device_id/User_id/Edge_DS/Edge_MDS/Edge_node/Cloud_DS/Cloud_MDS/Date/Time
+-----------------------------------------------------------------------------------
