@@ -284,6 +284,7 @@ spnfsd_remove(struct spnfs_msg *im)
 			dataservers[ds].ds_ip, basename);
 		unlink(fullpath);
 
+		//remove_DB
 		sprintf(DS_IP,"%s", dataservers[ds].ds_ip);
 		sprintf(comm, "/root/EdgeComputing/pnfs-nfs-utils/utils/spnfsd/remove_DB %s %s", filename, DS_IP);
 		system(comm);
