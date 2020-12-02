@@ -91,6 +91,7 @@ spnfsd_layoutget(struct spnfs_msg *im)
 			
 	sprintf(filename, "%lu.%lu", im->im_args.layoutget_args.inode, im->im_args.layoutget_args.generation);
 
+	//send_DB
 	for (ds = 0 ; ds < num_ds ; ds++){
 		sprintf(DS_IP,"%s", dataservers[ds].ds_ip);
 		sprintf(comm, "/root/EdgeComputing/pnfs-nfs-utils/utils/spnfsd/send_DB %s %s", filename, DS_IP);
