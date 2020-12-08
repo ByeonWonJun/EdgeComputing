@@ -1,3 +1,4 @@
+//Just add text in database
 #include <stdio.h>
 #include <stdlib.h>
 
