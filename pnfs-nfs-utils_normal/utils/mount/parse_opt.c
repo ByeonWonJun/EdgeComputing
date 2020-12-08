@@ -16,8 +16,8 @@
  *
  * You should have received a copy of the GNU General Public
  * License along with this program; if not, write to the
- * Free Software Foundation, Inc.,
- * 51 Franklin Street, Fifth Floor, Boston, MA 0211-1301 USA
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+ * Boston, MA 021110-1307, USA.
  *
  */
 
@@ -508,7 +508,7 @@ po_found_t po_get_numeric(struct mount_options *options, char *keyword, long *va
 int po_rightmost(struct mount_options *options, const char *keys[])
 {
 	struct mount_option *option;
-	int i;
+	unsigned int i;
 
 	if (options) {
 		for (option = options->tail; option; option = option->prev) {

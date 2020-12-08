@@ -31,16 +31,11 @@
 #include "nls.h"
 
 #include "mount_constants.h"
-#include "nfs_mount.h"
 #include "mount.h"
 #include "error.h"
 #include "network.h"
 #include "parse_opt.h"
 #include "parse_dev.h"
-#include "utils.h"
-
-#define MOUNTSFILE	"/proc/mounts"
-#define LINELEN		(4096)
 
 #if !defined(MNT_FORCE)
 /* dare not try to include <linux/mount.h> -- lots of errors */
@@ -114,7 +109,7 @@ static int del_mtab(const char *spec, const char *node)
 			res = try_remount(spec, node);
 			if (res)
 				goto writemtab;
-			return EX_SUCCESS;
+			return 0;
 		} else
 			umnt_err = errno;
 	}
@@ -132,7 +127,7 @@ static int del_mtab(const char *spec, const char *node)
 	}
 
 	if (res >= 0)
-		return EX_SUCCESS;
+		return 0;
 
 	if (umnt_err)
 		umount_error(umnt_err, node);
@@ -140,76 +135,112 @@ static int del_mtab(const char *spec, const char *node)
 }
 
 /*
- * Detect NFSv4 mounts.
+ * Discover mount server's hostname/address by examining mount options
  *
- * Consult /proc/mounts to determine if the mount point
- * is an NFSv4 mount.  The kernel is authoritative about
- * what type of mount this is.
- *
- * Returns 1 if "mc" is an NFSv4 mount, zero if not, and
- * -1 if some error occurred.
+ * Returns a pointer to a string that the caller must free, on
+ * success; otherwise NULL is returned.
  */
-static int nfs_umount_is_vers4(const struct mntentchn *mc)
+static char *nfs_umount_hostname(struct mount_options *options,
+				 char *hostname)
 {
-	struct mntentchn *pmc;
-	struct mount_options *options;
-	int retval;
+	char *option;
 
-	retval = -1;
-	pmc = getprocmntdirbackward(mc->m.mnt_dir, NULL);
-	if (!pmc)
-		goto not_found;
-
-	do {
-		size_t nlen = strlen(pmc->m.mnt_fsname);
-
-		/*
-		 * It's possible the mount location string in /proc/mounts
-		 * ends with a '/'. In this case, if the entry came from
-		 * /etc/mtab, it won't have the trailing '/' so deal with
-		 * it.
-		 */
-		while (pmc->m.mnt_fsname[nlen - 1] == '/')
-			nlen--;
-		if (strncmp(pmc->m.mnt_fsname, mc->m.mnt_fsname, nlen) != 0)
-			continue;
-
-		if (strcmp(pmc->m.mnt_type, "nfs4") == 0)
-			goto out_nfs4;
-
-		options = po_split(pmc->m.mnt_opts);
-		if (options != NULL) {
-			unsigned long version;
-			int rc = nfs_nfs_version(options, &version);
-			po_destroy(options);
-			if (rc && version == 4)
-				goto out_nfs4;
-		}
-
-		if (strcmp(pmc->m.mnt_type, "nfs") == 0)
-			goto out_nfs;
-	} while ((pmc = getprocmntdirbackward(mc->m.mnt_dir, pmc)) != NULL);
-
-	if (retval == -1) {
-not_found:
-		fprintf(stderr, "%s was not found in %s\n",
-			mc->m.mnt_dir, MOUNTSFILE);
+	option = po_get(options, "mountaddr");
+	if (option)
 		goto out;
-	}
+	option = po_get(options, "mounthost");
+	if (option)
+		goto out;
+	option = po_get(options, "addr");
+	if (option)
+		goto out;
 
-out_nfs4:
-	if (verbose)
-		fprintf(stderr, "NFSv4 mount point detected\n");
-	retval = 1;
-	goto out;
-
-out_nfs:
-	if (verbose)
-		fprintf(stderr, "Legacy NFS mount point detected\n");
-	retval = 0;
+	return hostname;
 
 out:
-	return retval;
+	free(hostname);
+	return strdup(option);
+}
+
+/*
+ * Returns EX_SUCCESS if mount options and device name have been
+ * parsed successfully; otherwise EX_FAIL.
+ */
+static int nfs_umount_do_umnt(struct mount_options *options,
+			      char **hostname, char **dirname)
+{
+	union {
+		struct sockaddr		sa;
+		struct sockaddr_in	s4;
+		struct sockaddr_in6	s6;
+	} address;
+	struct sockaddr *sap = &address.sa;
+	socklen_t salen = sizeof(address);
+	struct pmap nfs_pmap, mnt_pmap;
+	sa_family_t family;
+
+	if (!nfs_options2pmap(options, &nfs_pmap, &mnt_pmap)) {
+		nfs_error(_("%s: bad mount options"), progname);
+		return EX_FAIL;
+	}
+
+	/* Skip UMNT call for vers=4 mounts */
+	if (nfs_pmap.pm_vers == 4)
+		return EX_SUCCESS;
+
+	*hostname = nfs_umount_hostname(options, *hostname);
+	if (!*hostname) {
+		nfs_error(_("%s: out of memory"), progname);
+		return EX_FAIL;
+	}
+
+	if (!nfs_mount_proto_family(options, &family))
+		return 0;
+	if (!nfs_lookup(*hostname, family, sap, &salen))
+		/* nfs_lookup reports any errors */
+		return EX_FAIL;
+
+	if (nfs_advise_umount(sap, salen, &mnt_pmap, dirname) == 0)
+		/* nfs_advise_umount reports any errors */
+		return EX_FAIL;
+
+	return EX_SUCCESS;
+}
+
+/*
+ * Pick up certain mount options used during the original mount
+ * from /etc/mtab.  The basics include the server's IP address and
+ * the server pathname of the share to unregister.
+ *
+ * These options might also describe the mount port, mount protocol
+ * version, and transport protocol used to punch through a firewall.
+ * We will need this information to get through the firewall again
+ * to do the umount.
+ *
+ * Note that option parsing failures won't necessarily cause the
+ * umount request to fail.  Those values will be left zero in the
+ * pmap tuple.  If the GETPORT call later fails to disambiguate them,
+ * then we fail.
+ */
+static int nfs_umount23(const char *devname, char *string)
+{
+	char *hostname, *dirname;
+	struct mount_options *options;
+	int result = EX_FAIL;
+
+	if (!nfs_parse_devname(devname, &hostname, &dirname))
+		return EX_USAGE;
+
+	options = po_split(string);
+	if (options) {
+		result = nfs_umount_do_umnt(options, &hostname, &dirname);
+		po_destroy(options);
+	} else
+		nfs_error(_("%s: option parsing error"), progname);
+
+	free(hostname);
+	free(dirname);
+	return result;
 }
 
 static struct option umount_longopts[] =
@@ -221,6 +252,17 @@ static struct option umount_longopts[] =
   { "read-only", 0, 0, 'r' },
   { NULL, 0, 0, 0 }
 };
+
+static void umount_usage(void)
+{
+	printf(_("usage: %s dir [-fvnrlh]\n"), progname);
+	printf(_("options:\n\t-f\t\tforce unmount\n"));
+	printf(_("\t-v\tverbose\n"));
+	printf(_("\t-n\tDo not update /etc/mtab\n"));
+	printf(_("\t-r\tremount\n"));
+	printf(_("\t-l\tlazy unmount\n"));
+	printf(_("\t-h\tprint this help\n\n"));
+}
 
 int nfsumount(int argc, char *argv[])
 {
@@ -322,25 +364,16 @@ int nfsumount(int argc, char *argv[])
 		}
 	}
 
-	ret = EX_SUCCESS;
+	ret = 0;
 	if (mc) {
-		if (!lazy) {
-			switch (nfs_umount_is_vers4(mc)) {
-			case 0:
-				/* We ignore the error from nfs_umount23.
-				 * If the actual umount succeeds (in del_mtab),
-				 * we don't want to signal an error, as that
-				 * could cause /sbin/mount to retry!
-				 */
-				nfs_umount23(mc->m.mnt_fsname, mc->m.mnt_opts);
-				break;
-			case 1:
-				break;
-			default:
-				return EX_FAIL;
-			}
-		}
-		ret = del_mtab(mc->m.mnt_fsname, mc->m.mnt_dir);
+		if (!lazy && strcmp(mc->m.mnt_type, "nfs4") != 0)
+			/* We ignore the error from nfs_umount23.
+			 * If the actual umount succeeds (in del_mtab),
+			 * we don't want to signal an error, as that
+			 * could cause /sbin/mount to retry!
+			 */
+			nfs_umount23(mc->m.mnt_fsname, mc->m.mnt_opts);
+		ret = del_mtab(mc->m.mnt_fsname, mc->m.mnt_dir) ?: ret;
 	} else if (*spec != '/') {
 		if (!lazy)
 			ret = nfs_umount23(spec, "tcp,v3");

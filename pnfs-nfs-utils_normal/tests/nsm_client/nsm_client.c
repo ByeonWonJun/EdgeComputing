@@ -205,7 +205,7 @@ nsm_client_get_rpcclient(const char *node)
 {
 	unsigned short		port;
 	struct addrinfo		*ai;
-	struct addrinfo		hints = { };
+	struct addrinfo		hints = { .ai_flags	= AI_ADDRCONFIG };
 	int			err;
 	CLIENT			*client = NULL;
 

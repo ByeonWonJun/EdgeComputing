@@ -11,8 +11,12 @@ EXTRA_DIST = \
 	idmapd.conf
 
 idmapd_SOURCES = \
+	atomicio.c \
 	idmapd.c \
+	strlcat.c \
+	strlcpy.c \
 	\
+	cfg.h \
 	nfs_idmap.h \
 	queue.h
 

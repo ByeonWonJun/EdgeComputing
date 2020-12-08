@@ -148,11 +148,6 @@ void qword_printint(FILE *f, int num)
 	fprintf(f, "%d ", num);
 }
 
-void qword_printuint(FILE *f, unsigned int num)
-{
-	fprintf(f, "%u ", num);
-}
-
 int qword_eol(FILE *f)
 {
 	int err;
@@ -236,20 +231,6 @@ int qword_get_int(char **bpp, int *anint)
 	if (len < 0) return -1;
 	if (len ==0) return -1;
 	rv = strtol(buf, &ep, 0);
-	if (*ep) return -1;
-	*anint = rv;
-	return 0;
-}
-
-int qword_get_uint(char **bpp, unsigned int *anint)
-{
-	char buf[50];
-	char *ep;
-	unsigned int rv;
-	int len = qword_get(bpp, buf, 50);
-	if (len < 0) return -1;
-	if (len ==0) return -1;
-	rv = strtoul(buf, &ep, 0);
 	if (*ep) return -1;
 	*anint = rv;
 	return 0;
@@ -349,7 +330,7 @@ cache_flush(int force)
 		sprintf(path, "/proc/net/rpc/%s/flush", cachelist[c]);
 		fd = open(path, O_RDWR);
 		if (fd >= 0) {
-			if (write(fd, stime, strlen(stime)) != (ssize_t)strlen(stime)) {
+			if (write(fd, stime, strlen(stime)) != strlen(stime)) {
 				xlog_warn("Writing to '%s' failed: errno %d (%s)",
 				path, errno, strerror(errno));
 			}

@@ -12,7 +12,7 @@
 .SH NAME
 rpc.statd \- NSM service daemon
 .SH SYNOPSIS
-.BI "rpc.statd [-dh?FLNvV] [-H " prog "] [-n " my-name "] [-o " outgoing-port "] [-p " listener-port "] [-P " path " ]
+.BI "rpc.statd [-dh?FLNvVw] [-H " prog "] [-n " my-name "] [-o " outgoing-port "] [-p " listener-port "] [-P " path " ]
 .SH DESCRIPTION
 File locks are not part of persistent file system state.
 Lock state is thus lost when a host reboots.
@@ -100,9 +100,11 @@ It uses the
 string as the destination.
 To identify which host has rebooted, the
 .B sm-notify
-command sends the
+command normally sends the results of
+.BR gethostname (3)
+as the
 .I my_name
-string recorded when that remote was monitored.
+string.
 The remote
 .B rpc.statd
 matches incoming SM_NOTIFY requests using this string,
@@ -219,10 +221,7 @@ for details.
 Specifies the port number used for RPC listener sockets.
 If this option is not specified,
 .B rpc.statd
-will try to consult
-.IR /etc/services ,
-if gets port succeed, set the same port for all listener socket,
-otherwise chooses a random ephemeral port for each listener socket.
+chooses a random ephemeral port for each listener socket.
 .IP
 This option can be used to fix the port value of its listeners when
 SM_NOTIFY requests must traverse a firewall between clients and servers.
@@ -293,6 +292,7 @@ man pages.
 .SH ADDITIONAL NOTES
 Lock recovery after a reboot is critical to maintaining data integrity
 and preventing unnecessary application hangs.
+.PP
 To help
 .B rpc.statd
 match SM_NOTIFY requests to NLM requests, a number of best practices
@@ -309,6 +309,13 @@ consistent
 The hostname the client uses to mount the server should match the server's
 .I mon_name
 in SM_NOTIFY requests it sends
+.IP
+The use of network addresses as a
+.I mon_name
+or a
+.I my_name
+string should be avoided when
+interoperating with non-Linux NFS implementations.
 .PP
 Unmounting an NFS file system does not necessarily stop
 either the NFS client or server from monitoring each other.
@@ -350,7 +357,8 @@ of the requesting lock manager.
 TI-RPC is a pre-requisite for supporting NFS on IPv6.
 If TI-RPC support is built into
 .BR rpc.statd ,
-it attempts to start listeners on network transports marked 'visible' in
+it attempts to start listeners on network transports marked
+'visible' in
 .IR /etc/netconfig .
 As long as at least one network transport listener starts successfully,
 .B rpc.statd

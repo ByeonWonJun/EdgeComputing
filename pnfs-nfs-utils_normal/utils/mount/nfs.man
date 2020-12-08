@@ -3,6 +3,8 @@
 .SH NAME
 nfs \- fstab format and options for the
 .B nfs
+and
+.B nfs4
 file systems
 .SH SYNOPSIS
 .I /etc/fstab
@@ -46,10 +48,11 @@ files on this mount point.
 The fifth and sixth fields on each line are not used
 by NFS, thus conventionally each contain the digit zero. For example:
 .P
-.nf
-.ta 8n +14n +14n +9n +20n
+.SP
+.NF
+.TA 2.5i +0.75i +0.75i +1.0i
 	server:path	/mountpoint	fstype	option,option,...	0 0
-.fi
+.FI
 .P
 The server's hostname and export pathname
 are separated by a colon, while
@@ -68,9 +71,14 @@ for details on specifying raw IPv6 addresses.
 .P
 The
 .I fstype
-field contains "nfs".  Use of the "nfs4" fstype in
-.I /etc/fstab
-is deprecated.
+field contains either "nfs" (for version 2 or version 3 NFS mounts)
+or "nfs4" (for NFS version 4 mounts).
+The
+.B nfs
+and
+.B nfs4
+file system types share similar mount options,
+which are described below.
 .SH "MOUNT OPTIONS"
 Refer to
 .BR mount (8)
@@ -81,8 +89,14 @@ specify any mount options, use the generic option
 in
 .IR /etc/fstab .
 .DT
-.SS "Options supported by all versions"
-These options are valid to use with any NFS version.
+.SS "Valid options for either the nfs or nfs4 file system type"
+These options are valid to use when mounting either
+.B nfs
+or
+.B nfs4
+file system types.
+They imply the same behavior
+and have the same default for both file system types.
 .TP 1.5i
 .BR soft " / " hard
 Determines the recovery behavior of the NFS client
@@ -112,16 +126,12 @@ option may mitigate some of the risks of using the
 option.
 .TP 1.5i
 .BI timeo= n
-The time in deciseconds (tenths of a second) the NFS client waits for a
-response before it retries an NFS request.
-.IP
-For NFS over TCP the default
-.B timeo
-value is 600 (60 seconds).
-The NFS client performs linear backoff: After each retransmission the 
-timeout is increased by
-.BR timeo 
-up to the maximum of 600 seconds.
+The time (in tenths of a second) the NFS client waits for a
+response before it retries an NFS request. If this
+option is not specified, requests are retried every
+60 seconds for NFS over TCP.
+The NFS client does not perform any kind of timeout backoff
+for NFS over TCP.
 .IP
 However, for NFS over UDP, the client uses an adaptive
 algorithm to estimate an appropriate timeout value for frequently used
@@ -466,9 +476,11 @@ by other clients, but can impact application and server performance.
 .IP
 The DATA AND METADATA COHERENCE section contains a
 detailed discussion of these trade-offs.
-.SS "Options for NFS versions 2 and 3 only"
+.SS "Valid options for the nfs file system type"
 Use these options, along with the options in the above subsection,
-for NFS versions 2 and 3 only.
+for mounting the
+.B nfs
+file system type.
 .TP 1.5i
 .BI proto= netid
 The transport protocol name and protocol family the NFS client uses
@@ -483,10 +495,7 @@ command,
 .I netid
 is a valid netid listed in
 .IR /etc/netconfig .
-The value "rdma" may also be specified.
-If the
-.B mount.nfs
-command does not have TI-RPC support, then
+Otherwise,
 .I netid
 is one of "tcp," "udp," or "rdma," and only IPv4 may be used.
 .IP
@@ -527,12 +536,6 @@ The
 option is an alternative to specifying
 .BR proto=tcp.
 It is included for compatibility with other operating systems.
-.TP 1.5i
-.B rdma
-The
-.B rdma
-option is an alternative to specifying
-.BR proto=rdma.
 .TP 1.5i
 .BI port= n
 The numeric value of the server's NFS service port.
@@ -620,9 +623,14 @@ in such cases.
 .TP 1.5i
 .BI nfsvers= n
 The NFS protocol version number used to contact the server's NFS service.
-If the server does not support the requested version, the mount request fails.
-If this option is not specified, the client negotiates a suitable version with
-the server, trying version 4 first, version 3 second, and version 2 last.
+The Linux client supports version 2 and version 3 of the NFS protocol
+when using the file system type
+.BR nfs .
+If the server does not support the requested version,
+the mount request fails.
+If this option is not specified, the client attempts to use version 3,
+but negotiates the NFS version with the server if version 3 support
+is not available.
 .TP 1.5i
 .BI vers= n
 This option is an alternative to the
@@ -719,53 +727,11 @@ If this option is not specified, the NFS client uses READDIRPLUS requests
 on NFS version 3 mounts to read small directories.
 Some applications perform better if the client uses only READDIR requests
 for all directories.
-.TP 1.5i
-.BR local_lock= mechanism
-Specifies whether to use local locking for any or both of the flock and the
-POSIX locking mechanisms.
-.I mechanism
-can be one of
-.BR all ,
-.BR flock ,
-.BR posix ,
-or
-.BR none .
-This option is supported in kernels 2.6.37 and later.
-.IP
-The Linux NFS client provides a way to make locks local. This means, the
-applications can lock files, but such locks provide exclusion only against
-other applications running on the same client. Remote applications are not
-affected by these locks.
-.IP
-If this option is not specified, or if
-.B none
-is specified, the client assumes that the locks are not local.
-.IP
-If
-.BR all
-is specified, the client assumes that both flock and POSIX locks are local.
-.IP
-If
-.BR flock
-is specified, the client assumes that only flock locks are local and uses
-NLM sideband protocol to lock files when POSIX locks are used.
-.IP
-If
-.BR posix
-is specified, the client assumes that POSIX locks are local and uses NLM
-sideband protocol to lock files when flock locks are used.
-.IP
-To support legacy flock behavior similar to that of NFS clients < 2.6.12, 
-use 'local_lock=flock'. This option is required when exporting NFS mounts via
-Samba as Samba maps Windows share mode locks as flock. Since NFS clients >
-2.6.12 implement flock by emulating POSIX locks, this will result in
-conflicting locks.
-.IP
-NOTE: When used together, the 'local_lock' mount option will be overridden
-by 'nolock'/'lock' mount option.
-.SS "Options for NFS version 4 only"
+.SS "Valid options for the nfs4 file system type"
 Use these options, along with the options in the first subsection above,
-for NFS version 4 and newer.
+for mounting the
+.B nfs4
+file system type.
 .TP 1.5i
 .BI proto= netid
 The transport protocol name and protocol family the NFS client uses
@@ -862,13 +828,6 @@ In the presence of multiple client network interfaces,
 special routing policies,
 or atypical network topologies,
 the exact address to use for callbacks may be nontrivial to determine.
-.SH nfs4 FILE SYSTEM TYPE
-The
-.BR nfs4
-file system type is an old syntax for specifying NFSv4 usage. It can still 
-be used with all NFSv4-specific and common options, excepted the
-.B nfsvers
-mount option.
 .SH MOUNT CONFIGURATION FILE
 If the mount command is configured to do so, all of the mount options 
 described in the previous section can also be configured in the 
@@ -890,11 +849,12 @@ file system type and specify the
 .B nfsvers=3
 mount option.
 To mount using NFS version 4,
-use either the
-.B nfs
-file system type, with the
-.B nfsvers=4
-mount option, or the 
+use the
+.B nfs4
+file system type.
+The
+.B nfsvers
+mount option is not supported for the
 .B nfs4
 file system type.
 .P
@@ -903,40 +863,40 @@ The following example from an
 file causes the mount command to negotiate
 reasonable defaults for NFS behavior.
 .P
-.nf
-.ta 8n +16n +6n +6n +30n
+.NF
+.TA 2.5i +0.7i +0.7i +.7i
 	server:/export	/mnt	nfs	defaults	0 0
-.fi
+.FI
 .P
 Here is an example from an /etc/fstab file for an NFS version 2 mount over UDP.
 .P
-.nf
-.ta 8n +16n +6n +6n +30n
+.NF
+.TA 2.5i +0.7i +0.7i +.7i
 	server:/export	/mnt	nfs	nfsvers=2,proto=udp	0 0
-.fi
+.FI
 .P
 Try this example to mount using NFS version 4 over TCP
 with Kerberos 5 mutual authentication.
 .P
-.nf
-.ta 8n +16n +6n +6n +30n
+.NF
+.TA 2.5i +0.7i +0.7i +.7i
 	server:/export	/mnt	nfs4	sec=krb5	0 0
-.fi
+.FI
 .P
 This example can be used to mount /usr over NFS.
 .P
-.nf
-.ta 8n +16n +6n +6n +30n
+.NF
+.TA 2.5i +0.7i +0.7i +.7i
 	server:/export	/usr	nfs	ro,nolock,nocto,actimeo=3600	0 0
-.fi
+.FI
 .P
 This example shows how to mount an NFS server
 using a raw IPv6 link-local address.
 .P
-.nf
-.ta 8n +40n +5n +4n +9n
+.NF
+.TA 2.5i +0.7i +0.7i +.7i
 	[fe80::215:c5ff:fb3e:e2b1%eth0]:/export	/mnt	nfs	defaults	0 0
-.fi
+.FI
 .SH "TRANSPORT METHODS"
 NFS clients send requests to NFS servers via
 Remote Procedure Calls, or
@@ -1526,54 +1486,32 @@ of Access Control Lists that are semantically richer than POSIX ACLs.
 NFS version 4 ACLs are not fully compatible with POSIX ACLs; as such,
 some translation between the two is required
 in an environment that mixes POSIX ACLs and NFS version 4.
-.SH "THE REMOUNT OPTION"
-Generic mount options such as
-.BR rw " and " sync
-can be modified on NFS mount points using the
-.BR remount
-option.
-See
-.BR mount (8)
-for more information on generic mount options.
-.P
-With few exceptions, NFS-specific options
-are not able to be modified during a remount.
-The underlying transport or NFS version
-cannot be changed by a remount, for example.
-.P
-Performing a remount on an NFS file system mounted with the
-.B noac
-option may have unintended consequences.
-The
-.B noac
-option is a combination of the generic option
-.BR sync ,
-and the NFS-specific option
-.BR actimeo=0 .
-.SS "Unmounting after a remount"
-For mount points that use NFS versions 2 or 3, the NFS umount subcommand
-depends on knowing the original set of mount options used to perform the
-MNT operation.
-These options are stored on disk by the NFS mount subcommand,
-and can be erased by a remount.
-.P
-To ensure that the saved mount options are not erased during a remount,
-specify either the local mount directory, or the server hostname and
-export pathname, but not both, during a remount.  For example,
-.P
-.nf
-.ta 8n
-	mount -o remount,ro /mnt
-.fi
-.P
-merges the mount option
-.B ro
-with the mount options already saved on disk for the NFS server mounted at /mnt.
 .SH FILES
 .TP 1.5i
 .I /etc/fstab
 file system table
 .SH BUGS
+The generic
+.B remount
+option is not fully supported.
+Generic options, such as
+.BR rw " and " ro
+can be modified using the
+.B remount
+option,
+but NFS-specific options are not all supported.
+The underlying transport or NFS version
+cannot be changed by a remount, for example.
+Performing a remount on an NFS file system mounted with the
+.B noac
+option may have unintended consequences.
+The
+.B noac
+option is a mixture of a generic option,
+.BR sync ,
+and an NFS-specific option
+.BR actimeo=0 .
+.P
 Before 2.4.7, the Linux NFS client did not support NFS over TCP.
 .P
 Before 2.4.20, the Linux NFS client used a heuristic

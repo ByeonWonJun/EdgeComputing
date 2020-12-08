@@ -17,8 +17,7 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
-Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
-MA 02110-1301 USA
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 """
 
 import sys, os, time
@@ -46,12 +45,6 @@ class DeviceData:
             self.__nfs_data['fstype'] = words[7]
             if words[7].find('nfs') != -1:
                 self.__nfs_data['statvers'] = words[8]
-        elif 'nfs' in words or 'nfs4' in words:
-            self.__nfs_data['export'] = words[0]
-            self.__nfs_data['mountpoint'] = words[3]
-            self.__nfs_data['fstype'] = words[6]
-            if words[6].find('nfs') != -1:
-                self.__nfs_data['statvers'] = words[7]
         elif words[0] == 'age:':
             self.__nfs_data['age'] = long(words[1])
         elif words[0] == 'opts:':
@@ -376,9 +369,6 @@ def parse_stats_file(filename):
             continue
         if words[0] == 'device':
             key = words[4]
-            new = [ line.strip() ]
-        elif 'nfs' in words or 'nfs4' in words:
-            key = words[3]
             new = [ line.strip() ]
         else:
             new += [ line.strip() ]

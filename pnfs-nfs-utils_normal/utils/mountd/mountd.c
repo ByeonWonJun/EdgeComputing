@@ -28,6 +28,10 @@
 #include "rpcmisc.h"
 #include "pseudoflavors.h"
 
+extern void	cache_open(void);
+extern struct nfs_fh_len *cache_get_filehandle(nfs_export *exp, int len, char *p);
+extern int cache_export(nfs_export *exp, char *path);
+
 extern void my_svc_run(void);
 
 static void		usage(const char *, int exitcode);
@@ -71,37 +75,17 @@ static struct option longopts[] =
 	{ NULL, 0, 0, 0 }
 };
 
-#define NFSVERSBIT(vers)	(0x1 << (vers - 1))
-#define NFSVERSBIT_ALL		(NFSVERSBIT(2) | NFSVERSBIT(3) | NFSVERSBIT(4))
-
-static int nfs_version = NFSVERSBIT_ALL;
-
-static int version2(void)
-{
-	return nfs_version & NFSVERSBIT(2);
-}
-
-static int version3(void)
-{
-	return nfs_version & NFSVERSBIT(3);
-}
-
-static int version23(void)
-{
-	return nfs_version & (NFSVERSBIT(2) | NFSVERSBIT(3));
-}
-
-static int version_any(void)
-{
-	return nfs_version & NFSVERSBIT_ALL;
-}
+static int nfs_version = -1;
 
 static void
 unregister_services (void)
 {
-	nfs_svc_unregister(MOUNTPROG, MOUNTVERS);
-	nfs_svc_unregister(MOUNTPROG, MOUNTVERS_POSIX);
-	nfs_svc_unregister(MOUNTPROG, MOUNTVERS_NFSV3);
+	if (nfs_version & 0x1)
+		pmap_unset (MOUNTPROG, MOUNTVERS);
+	if (nfs_version & (0x1 << 1))
+		pmap_unset (MOUNTPROG, MOUNTVERS_POSIX);
+	if (nfs_version & (0x1 << 2))
+		pmap_unset (MOUNTPROG, MOUNTVERS_NFSV3);
 }
 
 static void
@@ -208,28 +192,17 @@ sig_hup (int sig)
 }
 
 bool_t
-mount_null_1_svc(struct svc_req *rqstp, void *UNUSED(argp), 
-	void *UNUSED(resp))
+mount_null_1_svc(struct svc_req *rqstp, void *argp, void *resp)
 {
-	struct sockaddr *sap = nfs_getrpccaller(rqstp->rq_xprt);
-	char buf[INET6_ADDRSTRLEN];
-
-	xlog(D_CALL, "Received NULL request from %s",
-		host_ntop(sap, buf, sizeof(buf)));
-
 	return 1;
 }
 
 bool_t
 mount_mnt_1_svc(struct svc_req *rqstp, dirpath *path, fhstatus *res)
 {
-	struct sockaddr *sap = nfs_getrpccaller(rqstp->rq_xprt);
-	char buf[INET6_ADDRSTRLEN];
 	struct nfs_fh_len *fh;
 
-	xlog(D_CALL, "Received MNT1(%s) request from %s", *path,
-		host_ntop(sap, buf, sizeof(buf)));
-
+	xlog(D_CALL, "MNT1(%s) called", *path);
 	fh = get_rootfh(rqstp, path, NULL, &res->fhs_status, 0);
 	if (fh)
 		memcpy(&res->fhstatus_u.fhs_fhandle, fh->fh_handle, 32);
@@ -237,27 +210,23 @@ mount_mnt_1_svc(struct svc_req *rqstp, dirpath *path, fhstatus *res)
 }
 
 bool_t
-mount_dump_1_svc(struct svc_req *rqstp, void *UNUSED(argp), mountlist *res)
+mount_dump_1_svc(struct svc_req *rqstp, void *argp, mountlist *res)
 {
-	struct sockaddr *sap = nfs_getrpccaller(rqstp->rq_xprt);
-	char buf[INET6_ADDRSTRLEN];
+	struct sockaddr_in *addr = nfs_getrpccaller_in(rqstp->rq_xprt);
 
-	xlog(D_CALL, "Received DUMP request from %s",
-		host_ntop(sap, buf, sizeof(buf)));
-
+	xlog(D_CALL, "dump request from %s.", inet_ntoa(addr->sin_addr));
 	*res = mountlist_list();
 
 	return 1;
 }
 
 bool_t
-mount_umnt_1_svc(struct svc_req *rqstp, dirpath *argp, void *UNUSED(resp))
+mount_umnt_1_svc(struct svc_req *rqstp, dirpath *argp, void *resp)
 {
-	struct sockaddr *sap = nfs_getrpccaller(rqstp->rq_xprt);
+	struct sockaddr_in *sin = nfs_getrpccaller_in(rqstp->rq_xprt);
 	nfs_export	*exp;
 	char		*p = *argp;
 	char		rpath[MAXPATHLEN+1];
-	char		buf[INET6_ADDRSTRLEN];
 
 	if (*p == '\0')
 		p = "/";
@@ -267,57 +236,41 @@ mount_umnt_1_svc(struct svc_req *rqstp, dirpath *argp, void *UNUSED(resp))
 		p = rpath;
 	}
 
-	xlog(D_CALL, "Received UMNT(%s) request from %s", p,
-		host_ntop(sap, buf, sizeof(buf)));
-
-	exp = auth_authenticate("unmount", sap, p);
-	if (exp == NULL)
+	if (!(exp = auth_authenticate("unmount", sin, p))) {
 		return 1;
+	}
 
-	mountlist_del(host_ntop(sap, buf, sizeof(buf)), p);
+	mountlist_del(inet_ntoa(sin->sin_addr), p);
 	return 1;
 }
 
 bool_t
-mount_umntall_1_svc(struct svc_req *rqstp, void *UNUSED(argp), 
-	void *UNUSED(resp))
+mount_umntall_1_svc(struct svc_req *rqstp, void *argp, void *resp)
 {
-	struct sockaddr *sap = nfs_getrpccaller(rqstp->rq_xprt);
-	char		buf[INET6_ADDRSTRLEN];
-
-	xlog(D_CALL, "Received UMNTALL request from %s",
-		host_ntop(sap, buf, sizeof(buf)));
-
 	/* Reload /etc/xtab if necessary */
 	auth_reload();
 
-	mountlist_del_all(nfs_getrpccaller(rqstp->rq_xprt));
+	mountlist_del_all(nfs_getrpccaller_in(rqstp->rq_xprt));
 	return 1;
 }
 
 bool_t
-mount_export_1_svc(struct svc_req *rqstp, void *UNUSED(argp), exports *resp)
+mount_export_1_svc(struct svc_req *rqstp, void *argp, exports *resp)
 {
-	struct sockaddr *sap = nfs_getrpccaller(rqstp->rq_xprt);
-	char buf[INET6_ADDRSTRLEN];
+	struct sockaddr_in *addr = nfs_getrpccaller_in(rqstp->rq_xprt);
 
-	xlog(D_CALL, "Received EXPORT request from %s.",
-		host_ntop(sap, buf, sizeof(buf)));
-
+	xlog(D_CALL, "export request from %s.", inet_ntoa(addr->sin_addr));
 	*resp = get_exportlist();
 		
 	return 1;
 }
 
 bool_t
-mount_exportall_1_svc(struct svc_req *rqstp, void *UNUSED(argp), exports *resp)
+mount_exportall_1_svc(struct svc_req *rqstp, void *argp, exports *resp)
 {
-	struct sockaddr *sap = nfs_getrpccaller(rqstp->rq_xprt);
-	char buf[INET6_ADDRSTRLEN];
+	struct sockaddr_in *addr = nfs_getrpccaller_in(rqstp->rq_xprt);
 
-	xlog(D_CALL, "Received EXPORTALL request from %s.",
-		host_ntop(sap, buf, sizeof(buf)));
-
+	xlog(D_CALL, "exportall request from %s.", inet_ntoa(addr->sin_addr));
 	*resp = get_exportlist();
 
 	return 1;
@@ -337,12 +290,11 @@ mount_exportall_1_svc(struct svc_req *rqstp, void *UNUSED(argp), exports *resp)
 bool_t
 mount_pathconf_2_svc(struct svc_req *rqstp, dirpath *path, ppathcnf *res)
 {
-	struct sockaddr *sap = nfs_getrpccaller(rqstp->rq_xprt);
+	struct sockaddr_in *sin = nfs_getrpccaller_in(rqstp->rq_xprt);
 	struct stat	stb;
 	nfs_export	*exp;
 	char		rpath[MAXPATHLEN+1];
 	char		*p = *path;
-	char buf[INET6_ADDRSTRLEN];
 
 	memset(res, 0, sizeof(*res));
 
@@ -358,14 +310,11 @@ mount_pathconf_2_svc(struct svc_req *rqstp, dirpath *path, ppathcnf *res)
 		p = rpath;
 	}
 
-	xlog(D_CALL, "Received PATHCONF(%s) request from %s", p,
-		host_ntop(sap, buf, sizeof(buf)));
-
 	/* Now authenticate the intruder... */
-	exp = auth_authenticate("pathconf", sap, p);
-	if (exp == NULL)
+	exp = auth_authenticate("pathconf", sin, p);
+	if (!exp) {
 		return 1;
-	else if (stat(p, &stb) < 0) {
+	} else if (stat(p, &stb) < 0) {
 		xlog(L_WARNING, "can't stat exported dir %s: %s",
 				p, strerror(errno));
 		return 1;
@@ -425,15 +374,11 @@ static void set_authflavors(struct mountres3_ok *ok, nfs_export *exp)
 bool_t
 mount_mnt_3_svc(struct svc_req *rqstp, dirpath *path, mountres3 *res)
 {
-	struct sockaddr *sap = nfs_getrpccaller(rqstp->rq_xprt);
 	struct mountres3_ok *ok = &res->mountres3_u.mountinfo;
-	char buf[INET6_ADDRSTRLEN];
 	nfs_export *exp;
 	struct nfs_fh_len *fh;
 
-	xlog(D_CALL, "Received MNT3(%s) request from %s", *path,
-		host_ntop(sap, buf, sizeof(buf)));
-
+	xlog(D_CALL, "MNT3(%s) called", *path);
 	fh = get_rootfh(rqstp, path, &exp, &res->fhs_status, 1);
 	if (!fh)
 		return 1;
@@ -448,13 +393,12 @@ static struct nfs_fh_len *
 get_rootfh(struct svc_req *rqstp, dirpath *path, nfs_export **expret,
 		mountstat3 *error, int v3)
 {
-	struct sockaddr *sap = nfs_getrpccaller(rqstp->rq_xprt);
+	struct sockaddr_in *sin = nfs_getrpccaller_in(rqstp->rq_xprt);
 	struct stat	stb, estb;
 	nfs_export	*exp;
 	struct nfs_fh_len *fh;
 	char		rpath[MAXPATHLEN+1];
 	char		*p = *path;
-	char		buf[INET6_ADDRSTRLEN];
 
 	if (*p == '\0')
 		p = "/";
@@ -469,29 +413,29 @@ get_rootfh(struct svc_req *rqstp, dirpath *path, nfs_export **expret,
 	}
 
 	/* Now authenticate the intruder... */
-	exp = auth_authenticate("mount", sap, p);
-	if (exp == NULL) {
-		*error = MNT3ERR_ACCES;
+	exp = auth_authenticate("mount", sin, p);
+	if (!exp) {
+		*error = NFSERR_ACCES;
 		return NULL;
 	}
 	if (stat(p, &stb) < 0) {
 		xlog(L_WARNING, "can't stat exported dir %s: %s",
 				p, strerror(errno));
 		if (errno == ENOENT)
-			*error = MNT3ERR_NOENT;
+			*error = NFSERR_NOENT;
 		else
-			*error = MNT3ERR_ACCES;
+			*error = NFSERR_ACCES;
 		return NULL;
 	}
 	if (!S_ISDIR(stb.st_mode) && !S_ISREG(stb.st_mode)) {
 		xlog(L_WARNING, "%s is not a directory or regular file", p);
-		*error = MNT3ERR_NOTDIR;
+		*error = NFSERR_NOTDIR;
 		return NULL;
 	}
 	if (stat(exp->m_export.e_path, &estb) < 0) {
 		xlog(L_WARNING, "can't stat export point %s: %s",
 		     p, strerror(errno));
-		*error = MNT3ERR_NOENT;
+		*error = NFSERR_NOENT;
 		return NULL;
 	}
 	if (estb.st_dev != stb.st_dev
@@ -499,7 +443,7 @@ get_rootfh(struct svc_req *rqstp, dirpath *path, nfs_export **expret,
 			   || !(exp->m_export.e_flags & NFSEXP_CROSSMOUNT))) {
 		xlog(L_WARNING, "request to export directory %s below nearest filesystem %s",
 		     p, exp->m_export.e_path);
-		*error = MNT3ERR_ACCES;
+		*error = NFSERR_ACCES;
 		return NULL;
 	}
 	if (exp->m_export.e_mountpoint &&
@@ -508,7 +452,7 @@ get_rootfh(struct svc_req *rqstp, dirpath *path, nfs_export **expret,
 				  exp->m_export.e_path)) {
 		xlog(L_WARNING, "request to export an unmounted filesystem: %s",
 		     p);
-		*error = MNT3ERR_NOENT;
+		*error = NFSERR_NOENT;
 		return NULL;
 	}
 
@@ -519,12 +463,12 @@ get_rootfh(struct svc_req *rqstp, dirpath *path, nfs_export **expret,
 		 */
 
 		if (cache_export(exp, p)) {
-			*error = MNT3ERR_ACCES;
+			*error = NFSERR_ACCES;
 			return NULL;
 		}
 		fh = cache_get_filehandle(exp, v3?64:32, p);
 		if (fh == NULL) {
-			*error = MNT3ERR_ACCES;
+			*error = NFSERR_ACCES;
 			return NULL;
 		}
 	} else {
@@ -538,13 +482,13 @@ get_rootfh(struct svc_req *rqstp, dirpath *path, nfs_export **expret,
 			xtab_append(exp);
 
 		if (v3)
-			fh = getfh_size((struct sockaddr_in *)sap, p, 64);
+			fh = getfh_size ((struct sockaddr *) sin, p, 64);
 		if (!v3 || (fh == NULL && errno == EINVAL)) {
 			/* We first try the new nfs syscall. */
-			fh = getfh((struct sockaddr_in *)sap, p);
+			fh = getfh ((struct sockaddr *) sin, p);
 			if (fh == NULL && errno == EINVAL)
 				/* Let's try the old one. */
-				fh = getfh_old((struct sockaddr_in *)sap,
+				fh = getfh_old ((struct sockaddr *) sin,
 						stb.st_dev, stb.st_ino);
 		}
 		if (fh == NULL && !did_export) {
@@ -554,12 +498,12 @@ get_rootfh(struct svc_req *rqstp, dirpath *path, nfs_export **expret,
 
 		if (fh == NULL) {
 			xlog(L_WARNING, "getfh failed: %s", strerror(errno));
-			*error = MNT3ERR_ACCES;
+			*error = NFSERR_ACCES;
 			return NULL;
 		}
 	}
-	*error = MNT_OK;
-	mountlist_add(host_ntop(sap, buf, sizeof(buf)), p);
+	*error = NFS_OK;
+	mountlist_add(inet_ntoa(sin->sin_addr), p);
 	if (expret)
 		*expret = exp;
 	return fh;
@@ -592,21 +536,22 @@ static void free_exportlist(exports *elist)
 
 static void prune_clients(nfs_export *exp, struct exportnode *e)
 {
-	struct addrinfo *ai = NULL;
+	struct hostent 	*hp;
 	struct groupnode *c, **cp;
 
 	cp = &e->ex_groups;
 	while ((c = *cp) != NULL) {
 		if (client_gettype(c->gr_name) == MCL_FQDN
-		    && (ai = host_addrinfo(c->gr_name))) {
-			if (client_check(exp->m_client, ai)) {
+				&& (hp = gethostbyname(c->gr_name))) {
+			hp = hostent_dup(hp);
+			if (client_check(exp->m_client, hp)) {
 				*cp = c->gr_next;
 				xfree(c->gr_name);
 				xfree(c);
-				freeaddrinfo(ai);
+				xfree (hp);
 				continue;
 			}
-			freeaddrinfo(ai);
+			xfree (hp);
 		}
 		cp = &(c->gr_next);
 	}
@@ -633,7 +578,7 @@ static void insert_group(struct exportnode *e, char *newname)
 	struct groupnode *g;
 
 	for (g = e->ex_groups; g; g = g->gr_next)
-		if (!strcmp(g->gr_name, newname))
+		if (strcmp(g->gr_name, newname))
 			return;
 
 	g = xmalloc(sizeof(*g));
@@ -689,21 +634,12 @@ main(int argc, char **argv)
 {
 	char	*export_file = _PATH_EXPORTS;
 	char    *state_dir = NFS_STATEDIR;
-	char	*progname;
-	unsigned int listeners = 0;
 	int	foreground = 0;
 	int	port = 0;
 	int	descriptors = 0;
 	int	c;
-	int	vers;
 	struct sigaction sa;
 	struct rlimit rlim;
-
-	/* Set the basename */
-	if ((progname = strrchr(argv[0], '/')) != NULL)
-		progname++;
-	else
-		progname = argv[0];
 
 	/* Parse the command line options and arguments. */
 	opterr = 0;
@@ -716,8 +652,8 @@ main(int argc, char **argv)
 			descriptors = atoi(optarg);
 			if (descriptors <= 0) {
 				fprintf(stderr, "%s: bad descriptors: %s\n",
-					progname, optarg);
-				usage(progname, 1);
+					argv [0], optarg);
+				usage(argv [0], 1);
 			}
 			break;
 		case 'F':
@@ -733,25 +669,19 @@ main(int argc, char **argv)
 			ha_callout_prog = optarg;
 			break;
 		case 'h':
-			usage(progname, 0);
+			usage(argv [0], 0);
 			break;
 		case 'P':	/* XXX for nfs-server compatibility */
 		case 'p':
 			port = atoi(optarg);
 			if (port <= 0 || port > 65535) {
 				fprintf(stderr, "%s: bad port number: %s\n",
-					progname, optarg);
-				usage(progname, 1);
+					argv [0], optarg);
+				usage(argv [0], 1);
 			}
 			break;
 		case 'N':
-			vers = atoi(optarg);
-			if (vers < 2 || vers > 4) {
-				fprintf(stderr, "%s: bad version number: %s\n",
-					argv[0], optarg);
-				usage(argv[0], 1);
-			}
-			nfs_version &= ~NFSVERSBIT(vers);
+			nfs_version &= ~(1 << (atoi (optarg) - 1));
 			break;
 		case 'n':
 			_rpcfdtype = SOCK_DGRAM;
@@ -762,7 +692,7 @@ main(int argc, char **argv)
 		case 's':
 			if ((state_dir = xstrdup(optarg)) == NULL) {
 				fprintf(stderr, "%s: xstrdup(%s) failed!\n",
-					progname, optarg);
+					argv[0], optarg);
 				exit(1);
 			}
 			break;
@@ -770,37 +700,31 @@ main(int argc, char **argv)
 			num_threads = atoi (optarg);
 			break;
 		case 'V':
-			vers = atoi(optarg);
-			if (vers < 2 || vers > 4) {
-				fprintf(stderr, "%s: bad version number: %s\n",
-					argv[0], optarg);
-				usage(argv[0], 1);
-			}
-			nfs_version |= NFSVERSBIT(vers);
+			nfs_version |= 1 << (atoi (optarg) - 1);
 			break;
 		case 'v':
-			printf("%s version " VERSION "\n", progname);
+			printf("kmountd %s\n", VERSION);
 			exit(0);
 		case 0:
 			break;
 		case '?':
 		default:
-			usage(progname, 1);
+			usage(argv [0], 1);
 		}
 
 	/* No more arguments allowed. */
-	if (optind != argc || !version_any())
-		usage(progname, 1);
+	if (optind != argc || !(nfs_version & 0x7))
+		usage(argv [0], 1);
 
 	if (chdir(state_dir)) {
 		fprintf(stderr, "%s: chdir(%s) failed: %s\n",
-			progname, state_dir, strerror(errno));
+			argv [0], state_dir, strerror(errno));
 		exit(1);
 	}
 
 	if (getrlimit (RLIMIT_NOFILE, &rlim) != 0)
 		fprintf(stderr, "%s: getrlimit (RLIMIT_NOFILE) failed: %s\n",
-				progname, strerror(errno));
+				argv [0], strerror(errno));
 	else {
 		/* glibc sunrpc code dies if getdtablesize > FD_SETSIZE */
 		if ((descriptors == 0 && rlim.rlim_cur > FD_SETSIZE) ||
@@ -810,14 +734,14 @@ main(int argc, char **argv)
 			rlim.rlim_cur = descriptors;
 			if (setrlimit (RLIMIT_NOFILE, &rlim) != 0) {
 				fprintf(stderr, "%s: setrlimit (RLIMIT_NOFILE) failed: %s\n",
-					progname, strerror(errno));
+					argv [0], strerror(errno));
 				exit(1);
 			}
 		}
 	}
 	/* Initialize logging. */
 	if (!foreground) xlog_stderr(0);
-	xlog_open(progname);
+	xlog_open("mountd");
 
 	sa.sa_handler = SIG_IGN;
 	sa.sa_flags = 0;
@@ -837,18 +761,15 @@ main(int argc, char **argv)
 	if (new_cache)
 		cache_open();
 
-	unregister_services();
-	if (version2()) {
-		listeners += nfs_svc_create("mountd", MOUNTPROG,
-					MOUNTVERS, mount_dispatch, port);
-		listeners += nfs_svc_create("mountd", MOUNTPROG,
-					MOUNTVERS_POSIX, mount_dispatch, port);
-	}
-	if (version3())
-		listeners += nfs_svc_create("mountd", MOUNTPROG,
-					MOUNTVERS_NFSV3, mount_dispatch, port);
-	if (version23() && listeners == 0)
-		xlog(L_FATAL, "mountd: could not create listeners\n");
+	if (nfs_version & 0x1)
+		rpc_init("mountd", MOUNTPROG, MOUNTVERS,
+			 mount_dispatch, port);
+	if (nfs_version & (0x1 << 1))
+		rpc_init("mountd", MOUNTPROG, MOUNTVERS_POSIX,
+			 mount_dispatch, port);
+	if (nfs_version & (0x1 << 2))
+		rpc_init("mountd", MOUNTPROG, MOUNTVERS_NFSV3,
+			 mount_dispatch, port);
 
 	sa.sa_handler = killer;
 	sigaction(SIGINT, &sa, NULL);
@@ -889,11 +810,9 @@ main(int argc, char **argv)
 	if (num_threads > 1)
 		fork_workers();
 
-	xlog(L_NOTICE, "Version " VERSION " starting");
 	my_svc_run();
 
-	xlog(L_ERROR, "RPC service loop terminated unexpectedly. Exiting...\n");
-	unregister_services();
+	xlog(L_ERROR, "Ack! Gack! svc_run returned!\n");
 	exit(1);
 }
 

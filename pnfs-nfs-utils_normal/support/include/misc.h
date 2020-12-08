@@ -15,9 +15,13 @@
 int	randomkey(unsigned char *keyout, int len);
 int	weakrandomkey(unsigned char *keyout, int len);
 
-extern int is_mountpoint(char *path);
+int	matchhostname(const char *h1, const char *h2); 
 
-/* size of the file pointer buffers for rpc procfs files */
-#define RPC_CHAN_BUF_SIZE 32768
+struct hostent;
+struct hostent	*hostent_dup(struct hostent *hp);
+struct hostent	*get_hostent (const char *addr, int len, int type);
+struct hostent *get_reliable_hostbyaddr(const char *addr, int len, int type);
+
+extern int is_mountpoint(char *path);
 
 #endif /* MISC_H */

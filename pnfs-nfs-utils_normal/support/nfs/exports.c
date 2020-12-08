@@ -107,7 +107,6 @@ static void init_exportent (struct exportent *ee, int fromkernel)
 	ee->e_nsquids = 0;
 	ee->e_nsqgids = 0;
 	ee->e_uuid = NULL;
-	ee->e_ttl = DEFAULT_TTL;
 	ee->e_pnfs = 0;
 }
 
@@ -143,14 +142,9 @@ getexportent(int fromkernel, int fromexports)
 		return NULL;
 	}
 	first = 0;
-
-	/*
-	 * Check for default options.  The kernel will never have default
-	 * options in /proc/fs/nfs/exports, however due to the initial '-' in
-	 * the -test-client- string from the test export we have to check that
-	 * we're not reading from the kernel.
-	 */
-	if (exp[0] == '-' && !fromkernel) {
+		
+	/* Check for default options */
+	if (exp[0] == '-') {
 		if (parseopts(exp + 1, &def_ee, 0, &has_default_subtree_opts) < 0)
 			return NULL;
 		
@@ -341,8 +335,6 @@ dupexportent(struct exportent *dst, struct exportent *src)
 		dst->e_mountpoint = strdup(src->e_mountpoint);
 	if (src->e_fslocdata)
 		dst->e_fslocdata = strdup(src->e_fslocdata);
-	if (src->e_uuid)
-		dst->e_uuid = strdup(src->e_uuid);
 	dst->e_hostname = NULL;
 }
 
@@ -791,9 +783,8 @@ struct export_features *get_export_features(void)
 	fd = open(path, O_RDONLY);
 	if (fd == -1)
 		goto good;
-	c = read(fd, buf, 50);
-	close(fd);
-	if (c == -1)
+	fd = read(fd, buf, 50);
+	if (fd == -1)
 		goto err;
 	c = sscanf(buf, "%x %x", &ef.flags, &ef.secinfo_flags);
 	if (c != 2)

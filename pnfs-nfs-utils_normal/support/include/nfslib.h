@@ -25,12 +25,6 @@
 #ifndef _PATH_EXPORTS
 #define _PATH_EXPORTS		"/etc/exports"
 #endif
-#ifndef _PATH_EXPORTS_D
-#define _PATH_EXPORTS_D         "/etc/exports.d"
-#endif
-#ifndef _EXT_EXPORT
-#define _EXT_EXPORT             ".exports"
-#endif
 #ifndef _PATH_IDMAPDCONF
 #define _PATH_IDMAPDCONF	"/etc/idmapd.conf"
 #endif
@@ -89,13 +83,12 @@ struct exportent {
 	int		e_nsquids;
 	int *		e_sqgids;
 	int		e_nsqgids;
-	unsigned int	e_fsid;
+	int		e_fsid;
 	char *		e_mountpoint;
 	int             e_fslocmethod;
 	char *          e_fslocdata;
 	char *		e_uuid;
 	struct sec_entry e_secinfo[SECFLAVOR_COUNT+1];
-	unsigned int	e_ttl;
 	int		e_pnfs;
 };
 
@@ -142,12 +135,9 @@ int			nfsaddclient(struct nfsctl_client *clp);
 int			nfsdelclient(struct nfsctl_client *clp);
 int			nfsexport(struct nfsctl_export *exp);
 int			nfsunexport(struct nfsctl_export *exp);
-
-struct nfs_fh_len *	getfh_old(const struct sockaddr_in *sin,
-					const dev_t dev, const ino_t ino);
-struct nfs_fh_len *	getfh(const struct sockaddr_in *sin, const char *path);
-struct nfs_fh_len *	getfh_size(const struct sockaddr_in *sin,
-					const char *path, int const size);
+struct nfs_fh_len *	getfh_old(struct sockaddr *addr, dev_t dev, ino_t ino);
+struct nfs_fh_len *	getfh(struct sockaddr *addr, const char *);
+struct nfs_fh_len *	getfh_size(struct sockaddr *addr, const char *, int size);
 
 void qword_print(FILE *f, char *str);
 void qword_printhex(FILE *f, char *str, int slen);
@@ -163,21 +153,10 @@ void qword_addhex(char **bpp, int *lp, char *buf, int blen);
 void qword_addint(char **bpp, int *lp, int n);
 void qword_adduint(char **bpp, int *lp, unsigned int n);
 void qword_addeol(char **bpp, int *lp);
-int qword_get_uint(char **bpp, unsigned int *anint);
-void qword_printuint(FILE *f, unsigned int num);
 
 void closeall(int min);
 
 int			svctcp_socket (u_long __number, int __reuse);
-int			svcudp_socket (u_long __number);
-
-/* Misc shared code prototypes */
-size_t  strlcat(char *, const char *, size_t);
-size_t  strlcpy(char *, const char *, size_t);
-ssize_t atomicio(ssize_t (*f) (int, void*, size_t),
-		 int, void *, size_t);
-
-
-#define UNUSED(x) UNUSED_ ## x __attribute__((unused))
+int			svcudp_socket (u_long __number, int __reuse);
 
 #endif /* NFSLIB_H */

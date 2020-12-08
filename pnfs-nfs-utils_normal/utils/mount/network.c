@@ -16,8 +16,8 @@
  *
  * You should have received a copy of the GNU General Public
  * License along with this program; if not, write to the
- * Free Software Foundation, Inc.,
- * 51 Franklin Street, Fifth Floor, Boston, MA 0211-1301 USA
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+ * Boston, MA 021110-1307, USA.
  *
  */
 
@@ -53,13 +53,10 @@
 #include "parse_opt.h"
 #include "network.h"
 #include "conffile.h"
-#include "nfslib.h"
 
 #define PMAP_TIMEOUT	(10)
 #define CONNECT_TIMEOUT	(20)
 #define MOUNT_TIMEOUT	(30)
-
-#define SAFE_SOCKADDR(x)	(struct sockaddr *)(char *)(x)
 
 extern int nfs_mount_data_version;
 extern char *progname;
@@ -85,7 +82,6 @@ static const char *nfs_nfs_pgmtbl[] = {
 static const char *nfs_transport_opttbl[] = {
 	"udp",
 	"tcp",
-	"rdma",
 	"proto",
 	NULL,
 };
@@ -210,6 +206,9 @@ int nfs_lookup(const char *hostname, const sa_family_t family,
 {
 	struct addrinfo *gai_results;
 	struct addrinfo gai_hint = {
+#ifdef HAVE_DECL_AI_ADDRCONFIG
+		.ai_flags	= AI_ADDRCONFIG,
+#endif	/* HAVE_DECL_AI_ADDRCONFIG */
 		.ai_family	= family,
 	};
 	socklen_t len = *salen;
@@ -427,12 +426,12 @@ static int get_socket(struct sockaddr_in *saddr, unsigned int p_prot,
 		if (bindresvport(so, &laddr) < 0)
 			goto err_bindresvport;
 	} else {
-		cc = bind(so, SAFE_SOCKADDR(&laddr), namelen);
+		cc = bind(so, (struct sockaddr *)&laddr, namelen);
 		if (cc < 0)
 			goto err_bind;
 	}
 	if (type == SOCK_STREAM || (conn && type == SOCK_DGRAM)) {
-		cc = connect_to(so, SAFE_SOCKADDR(saddr), namelen,
+		cc = connect_to(so, (struct sockaddr *)saddr, namelen,
 				timeout);
 		if (cc < 0)
 			goto err_connect;
@@ -755,12 +754,11 @@ int nfs_probe_bothports(const struct sockaddr *mnt_saddr,
  */
 int probe_bothports(clnt_addr_t *mnt_server, clnt_addr_t *nfs_server)
 {
-	struct sockaddr *mnt_addr = SAFE_SOCKADDR(&mnt_server->saddr);
-	struct sockaddr *nfs_addr = SAFE_SOCKADDR(&nfs_server->saddr);
-
-	return nfs_probe_bothports(mnt_addr, sizeof(mnt_server->saddr),
+	return nfs_probe_bothports((struct sockaddr *)&mnt_server->saddr,
+					sizeof(mnt_server->saddr),
 					&mnt_server->pmap,
-					nfs_addr, sizeof(nfs_server->saddr),
+					(struct sockaddr *)&nfs_server->saddr,
+					sizeof(nfs_server->saddr),
 					&nfs_server->pmap);
 }
 
@@ -772,7 +770,7 @@ static int nfs_probe_statd(void)
 	};
 	rpcprog_t program = nfs_getrpcbyname(NSMPROG, nfs_ns_pgmtbl);
 
-	return nfs_getport_ping(SAFE_SOCKADDR(&addr), sizeof(addr),
+	return nfs_getport_ping((struct sockaddr *)&addr, sizeof(addr),
 				program, (rpcvers_t)1, IPPROTO_UDP);
 }
 
@@ -859,14 +857,7 @@ int nfs_advise_umount(const struct sockaddr *sap, const socklen_t salen,
 		return 0;
 	}
 
-	client->cl_auth = nfs_authsys_create();
-	if (client->cl_auth == NULL) {
-		if (verbose)
-			nfs_error(_("%s: Failed to create RPC auth handle"),
-				progname);
-		CLNT_DESTROY(client);
-		return 0;
-	}
+	client->cl_auth = authunix_create_default();
 
 	res = CLNT_CALL(client, MOUNTPROC_UMNT,
 			(xdrproc_t)xdr_dirpath, (caddr_t)argp,
@@ -901,7 +892,7 @@ int nfs_advise_umount(const struct sockaddr *sap, const socklen_t salen,
  */
 int nfs_call_umount(clnt_addr_t *mnt_server, dirpath *argp)
 {
-	struct sockaddr *sap = SAFE_SOCKADDR(&mnt_server->saddr);
+	struct sockaddr *sap = (struct sockaddr *)&mnt_server->saddr;
 	socklen_t salen = sizeof(mnt_server->saddr);
 	struct pmap *pmap = &mnt_server->pmap;
 	CLIENT *clnt;
@@ -966,10 +957,8 @@ CLIENT *mnt_openclnt(clnt_addr_t *mnt_server, int *msock)
 	}
 	if (clnt) {
 		/* try to mount hostname:dirname */
-		clnt->cl_auth = nfs_authsys_create();
-		if (clnt->cl_auth)
-			return clnt;
-		CLNT_DESTROY(clnt);
+		clnt->cl_auth = authunix_create_default();
+		return clnt;
 	}
 	return NULL;
 }
@@ -1011,11 +1000,11 @@ int clnt_ping(struct sockaddr_in *saddr, const unsigned long prog,
 		struct sockaddr_in *caddr)
 {
 	CLIENT *clnt = NULL;
-	int sock, status;
+	int sock, stat;
 	static char clnt_res;
 	struct sockaddr dissolve;
 
-	rpc_createerr.cf_stat = status = 0;
+	rpc_createerr.cf_stat = stat = 0;
 	sock = get_socket(saddr, prot, CONNECT_TIMEOUT, FALSE, TRUE);
 	if (sock == RPC_ANYSOCK) {
 		if (rpc_createerr.cf_error.re_errno == ETIMEDOUT) {
@@ -1058,18 +1047,18 @@ int clnt_ping(struct sockaddr_in *saddr, const unsigned long prog,
 		return 0;
 	}
 	memset(&clnt_res, 0, sizeof(clnt_res));
-	status = clnt_call(clnt, NULLPROC,
+	stat = clnt_call(clnt, NULLPROC,
 			 (xdrproc_t)xdr_void, (caddr_t)NULL,
 			 (xdrproc_t)xdr_void, (caddr_t)&clnt_res,
 			 TIMEOUT);
-	if (status) {
+	if (stat) {
 		clnt_geterr(clnt, &rpc_createerr.cf_error);
-		rpc_createerr.cf_stat = status;
+		rpc_createerr.cf_stat = stat;
 	}
 	clnt_destroy(clnt);
 	close(sock);
 
-	if (status == RPC_SUCCESS)
+	if (stat == RPC_SUCCESS)
 		return 1;
 	else
 		return 0;
@@ -1095,7 +1084,7 @@ static int nfs_ca_sockname(const struct sockaddr *sap, const socklen_t salen,
 		.sin6_family		= AF_INET6,
 		.sin6_addr		= IN6ADDR_ANY_INIT,
 	};
-	int sock, result = 0;
+	int sock;
 
 	sock = socket(sap->sa_family, SOCK_DGRAM, IPPROTO_UDP);
 	if (sock < 0)
@@ -1103,26 +1092,28 @@ static int nfs_ca_sockname(const struct sockaddr *sap, const socklen_t salen,
 
 	switch (sap->sa_family) {
 	case AF_INET:
-		if (bind(sock, SAFE_SOCKADDR(&sin), sizeof(sin)) < 0)
-			goto out;
+		if (bind(sock, (struct sockaddr *)&sin, sizeof(sin)) < 0) {
+			close(sock);
+			return 0;
+		}
 		break;
 	case AF_INET6:
-		if (bind(sock, SAFE_SOCKADDR(&sin6), sizeof(sin6)) < 0)
-			goto out;
+		if (bind(sock, (struct sockaddr *)&sin6, sizeof(sin6)) < 0) {
+			close(sock);
+			return 0;
+		}
 		break;
 	default:
 		errno = EAFNOSUPPORT;
-		goto out;
+		return 0;
 	}
 
-	if (connect(sock, sap, salen) < 0)
-		goto out;
+	if (connect(sock, sap, salen) < 0) {
+		close(sock);
+		return 0;
+	}
 
-	result = !getsockname(sock, buf, buflen);
-
-out:
-	close(sock);
-	return result;
+	return !getsockname(sock, buf, buflen);
 }
 
 /*
@@ -1212,8 +1203,6 @@ nfs_nfs_program(struct mount_options *options, unsigned long *program)
 			return 1;
 		}
 	case PO_BAD_VALUE:
-		nfs_error(_("%s: invalid value for 'nfsprog=' option"),
-				progname);
 		return 0;
 	}
 
@@ -1253,12 +1242,9 @@ nfs_nfs_version(struct mount_options *options, unsigned long *version)
 			}
 			return 0;
 		case PO_NOT_FOUND:
-			nfs_error(_("%s: parsing error on 'vers=' option\n"),
+			nfs_error(_("%s: option parsing error\n"),
 					progname);
-			return 0;
 		case PO_BAD_VALUE:
-			nfs_error(_("%s: invalid value for 'vers=' option"),
-					progname);
 			return 0;
 		}
 	case 4: /* nfsvers */
@@ -1270,12 +1256,9 @@ nfs_nfs_version(struct mount_options *options, unsigned long *version)
 			}
 			return 0;
 		case PO_NOT_FOUND:
-			nfs_error(_("%s: parsing error on 'nfsvers=' option\n"),
+			nfs_error(_("%s: option parsing error\n"),
 					progname);
-			return 0;
 		case PO_BAD_VALUE:
-			nfs_error(_("%s: invalid value for 'nfsvers=' option"),
-					progname);
 			return 0;
 		}
 	}
@@ -1306,16 +1289,11 @@ nfs_nfs_protocol(struct mount_options *options, unsigned long *protocol)
 	case 1: /* tcp */
 		*protocol = IPPROTO_TCP;
 		return 1;
-	case 2: /* rdma */
-		*protocol = NFSPROTO_RDMA;
-		return 1;
-	case 3: /* proto */
+	case 2: /* proto */
 		option = po_get(options, "proto");
 		if (option != NULL) {
 			if (!nfs_get_proto(option, &family, protocol)) {
 				errno = EPROTONOSUPPORT;
-				nfs_error(_("%s: Failed to find '%s' protocol"), 
-					progname, option);
 				return 0;
 			}
 			return 1;
@@ -1344,13 +1322,11 @@ nfs_nfs_port(struct mount_options *options, unsigned long *port)
 	case PO_NOT_FOUND:
 		break;
 	case PO_FOUND:
-		if (tmp >= 0 && tmp <= 65535) {
+		if (tmp >= 1 && tmp <= 65535) {
 			*port = tmp;
 			return 1;
 		}
 	case PO_BAD_VALUE:
-		nfs_error(_("%s: invalid value for 'port=' option"),
-				progname);
 		return 0;
 	}
 
@@ -1366,7 +1342,7 @@ nfs_nfs_port(struct mount_options *options, unsigned long *port)
 sa_family_t	config_default_family = AF_UNSPEC;
 
 static int
-nfs_verify_family(sa_family_t UNUSED(family))
+nfs_verify_family(sa_family_t family)
 {
 	return 1;
 }
@@ -1398,20 +1374,14 @@ int nfs_nfs_proto_family(struct mount_options *options,
 	switch (po_rightmost(options, nfs_transport_opttbl)) {
 	case 0:	/* udp */
 	case 1: /* tcp */
-	case 2: /* rdma */
 		/* for compatibility; these are always AF_INET */
 		*family = AF_INET;
 		return 1;
-	case 3: /* proto */
+	case 2: /* proto */
 		option = po_get(options, "proto");
 		if (option != NULL &&
-		    !nfs_get_proto(option, &tmp_family, &protocol)) {
-
-			nfs_error(_("%s: Failed to find '%s' protocol"), 
-				progname, option);
-			errno = EPROTONOSUPPORT;
-			return 0;
-		}
+		    !nfs_get_proto(option, &tmp_family, &protocol))
+			goto out_err;
 	}
 
 	if (!nfs_verify_family(tmp_family))
@@ -1444,8 +1414,6 @@ nfs_mount_program(struct mount_options *options, unsigned long *program)
 			return 1;
 		}
 	case PO_BAD_VALUE:
-		nfs_error(_("%s: invalid value for 'mountprog=' option"),
-				progname);
 		return 0;
 	}
 
@@ -1475,8 +1443,6 @@ nfs_mount_version(struct mount_options *options, unsigned long *version)
 			return 1;
 		}
 	case PO_BAD_VALUE:
-		nfs_error(_("%s: invalid value for 'mountvers=' option"),
-				progname);
 		return 0;
 	}
 
@@ -1503,8 +1469,6 @@ nfs_mount_protocol(struct mount_options *options, unsigned long *protocol)
 	if (option != NULL) {
 		if (!nfs_get_proto(option, &family, protocol)) {
 			errno = EPROTONOSUPPORT;
-			nfs_error(_("%s: Failed to find '%s' protocol"), 
-				progname, option);
 			return 0;
 		}
 		return 1;
@@ -1516,11 +1480,7 @@ nfs_mount_protocol(struct mount_options *options, unsigned long *protocol)
 	 * set @protocol to zero.  The pmap protocol value will
 	 * be filled in later by an rpcbind query in this case.
 	 */
-	if (!nfs_nfs_protocol(options, protocol))
-		return 0;
-	if (*protocol == NFSPROTO_RDMA)
-		*protocol = IPPROTO_TCP;
-	return 1;
+	return nfs_nfs_protocol(options, protocol);
 }
 
 /*
@@ -1536,13 +1496,11 @@ nfs_mount_port(struct mount_options *options, unsigned long *port)
 	case PO_NOT_FOUND:
 		break;
 	case PO_FOUND:
-		if (tmp >= 0 && tmp <= 65535) {
+		if (tmp >= 1 && tmp <= 65535) {
 			*port = tmp;
 			return 1;
 		}
 	case PO_BAD_VALUE:
-		nfs_error(_("%s: invalid value for 'mountport=' option"),
-				progname);
 		return 0;
 	}
 
@@ -1568,12 +1526,8 @@ int nfs_mount_proto_family(struct mount_options *options,
 
 	option = po_get(options, "mountproto");
 	if (option != NULL) {
-		if (!nfs_get_proto(option, &tmp_family, &protocol)) {
-			nfs_error(_("%s: Failed to find '%s' protocol"), 
-				progname, option);
-			errno = EPROTONOSUPPORT;
+		if (!nfs_get_proto(option, &tmp_family, &protocol))
 			goto out_err;
-		}
 		if (!nfs_verify_family(tmp_family))
 			goto out_err;
 		*family = tmp_family;
@@ -1623,72 +1577,4 @@ int nfs_options2pmap(struct mount_options *options,
 		return 0;
 
 	return 1;
-}
-
-/*
- * Discover mount server's hostname/address by examining mount options
- *
- * Returns a pointer to a string that the caller must free, on
- * success; otherwise NULL is returned.
- */
-static char *nfs_umount_hostname(struct mount_options *options,
-				 char *hostname)
-{
-	char *option;
-
-	option = po_get(options, "mountaddr");
-	if (option)
-		goto out;
-	option = po_get(options, "mounthost");
-	if (option)
-		goto out;
-	option = po_get(options, "addr");
-	if (option)
-		goto out;
-
-	return hostname;
-
-out:
-	free(hostname);
-	return strdup(option);
-}
-
-
-/*
- * Returns EX_SUCCESS if mount options and device name have been
- * parsed successfully; otherwise EX_FAIL.
- */
-int nfs_umount_do_umnt(struct mount_options *options,
-		       char **hostname, char **dirname)
-{
-	union nfs_sockaddr address;
-	struct sockaddr *sap = &address.sa;
-	socklen_t salen = sizeof(address);
-	struct pmap nfs_pmap, mnt_pmap;
-	sa_family_t family;
-
-	if (!nfs_options2pmap(options, &nfs_pmap, &mnt_pmap))
-		return EX_FAIL;
-
-	/* Skip UMNT call for vers=4 mounts */
-	if (nfs_pmap.pm_vers == 4)
-		return EX_SUCCESS;
-
-	*hostname = nfs_umount_hostname(options, *hostname);
-	if (!*hostname) {
-		nfs_error(_("%s: out of memory"), progname);
-		return EX_FAIL;
-	}
-
-	if (!nfs_mount_proto_family(options, &family))
-		return 0;
-	if (!nfs_lookup(*hostname, family, sap, &salen))
-		/* nfs_lookup reports any errors */
-		return EX_FAIL;
-
-	if (nfs_advise_umount(sap, salen, &mnt_pmap, dirname) == 0)
-		/* nfs_advise_umount reports any errors */
-		return EX_FAIL;
-
-	return EX_SUCCESS;
 }

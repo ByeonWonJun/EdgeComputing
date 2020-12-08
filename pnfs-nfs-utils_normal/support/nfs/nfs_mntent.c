@@ -1,7 +1,7 @@
 /* Private version of the libc *mntent() routines. */
 /* Note slightly different prototypes. */
 
-/* 1999-02-22 Arkadiusz Miskiewicz <misiek@pld.ORG.PL>
+/* 1999-02-22 Arkadiusz Mi¶kiewicz <misiek@pld.ORG.PL>
  * - added Native Language Support
  *
  * 2006-06-08 Amit Gud <agud@redhat.com>
@@ -12,7 +12,6 @@
 #include <string.h>		/* for index */
 #include <ctype.h>		/* for isdigit */
 #include <sys/stat.h>		/* for umask */
-#include <unistd.h>		/* for ftruncate */
 
 #include "nfs_mntent.h"
 #include "nls.h"
@@ -29,7 +28,7 @@ static char *
 mangle(const char *arg) {
 	const unsigned char *s = (const unsigned char *)arg;
 	char *ss, *sp;
-	unsigned int n;
+	int n;
 
 	n = strlen(arg);
 	ss = sp = xmalloc(4*n+1);
@@ -128,11 +127,9 @@ int
 nfs_addmntent (mntFILE *mfp, struct mntent *mnt) {
 	char *m1, *m2, *m3, *m4;
 	int res;
-	off_t length;
 
 	if (fseek (mfp->mntent_fp, 0, SEEK_END))
 		return 1;			/* failure */
-	length = ftell(mfp->mntent_fp);
 
 	m1 = mangle(mnt->mnt_fsname);
 	m2 = mangle(mnt->mnt_dir);
@@ -146,12 +143,6 @@ nfs_addmntent (mntFILE *mfp, struct mntent *mnt) {
 	free(m2);
 	free(m3);
 	free(m4);
-	if (res >= 0) {
-		res = fflush(mfp->mntent_fp);
-		if (res < 0)
-			/* Avoid leaving a corrupt mtab file */
-			ftruncate(fileno(mfp->mntent_fp), length);
-	}
 	return (res < 0) ? 1 : 0;
 }
 

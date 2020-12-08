@@ -31,7 +31,7 @@ struct rpc_dentry {
 
 struct rpc_dtable {
 	struct rpc_dentry *entries;
-	rpcproc_t		nproc;
+	int		nproc;
 };
 
 #define dtable_ent(func, vers, arg_type, res_type) \
@@ -53,7 +53,6 @@ void		rpc_init(char *name, int prog, int vers,
 void		rpc_dispatch(struct svc_req *rq, SVCXPRT *xprt,
 				struct rpc_dtable *dtable, int nvers,
 				void *argp, void *resp);
-int		getservport(u_long number, const char *proto);
 
 extern int	_rpcpmstart;
 extern int	_rpcfdtype;
@@ -61,12 +60,12 @@ extern int	_rpcsvcdirty;
 
 static inline struct sockaddr_in *nfs_getrpccaller_in(SVCXPRT *xprt)
 {
-	return (struct sockaddr_in *)(char *)svc_getcaller(xprt);
+	return (struct sockaddr_in *)svc_getcaller(xprt);
 }
 
 static inline struct sockaddr *nfs_getrpccaller(SVCXPRT *xprt)
 {
-	return (struct sockaddr *)(char *)svc_getcaller(xprt);
+	return (struct sockaddr *)svc_getcaller(xprt);
 }
 
 #endif /* RPCMISC_H */

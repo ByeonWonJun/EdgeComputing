@@ -12,25 +12,20 @@
 #include <config.h>
 #endif
 
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <sys/vfs.h>
 #include <sys/stat.h>
 #include <unistd.h>
-#include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
 #include <getopt.h>
-#include <fcntl.h>
 #include <netdb.h>
 #include <errno.h>
-#include <dirent.h>
-
-#include "sockaddr.h"
+#include "xmalloc.h"
 #include "misc.h"
 #include "nfslib.h"
 #include "exportfs.h"
+#include "xmalloc.h"
 #include "xlog.h"
 
 static void	export_all(int verbose);
@@ -39,16 +34,13 @@ static void	unexportfs(char *arg, int verbose);
 static void	exports_update(int verbose);
 static void	dump(int verbose);
 static void	error(nfs_export *exp, int err);
-static void	usage(const char *progname);
+static void	usage(void);
 static void	validate_export(nfs_export *exp);
-static int	matchhostname(const char *hostname1, const char *hostname2);
-static void	export_d_read(const char *dname);
 
 int
 main(int argc, char **argv)
 {
 	char	*options = NULL;
-	char	*progname = NULL;
 	int	f_export = 1;
 	int	f_all = 0;
 	int	f_verbose = 0;
@@ -58,14 +50,7 @@ main(int argc, char **argv)
 	int	new_cache = 0;
 	int	force_flush = 0;
 
-	if ((progname = strrchr(argv[0], '/')) != NULL)
-		progname++;
-	else
-		progname = argv[0];
-
-	xlog_open(progname);
-	xlog_stderr(1);
-	xlog_syslog(0);
+	xlog_open("exportfs");
 
 	export_errno = 0;
 
@@ -94,21 +79,21 @@ main(int argc, char **argv)
 			force_flush = 1;
 			break;
 		default:
-			usage(progname);
+			usage();
 			break;
 		}
 	}
 
 	if (optind != argc && f_all) {
-		xlog(L_ERROR, "extra arguments are not permitted with -a or -r");
+		fprintf(stderr,"exportfs: extra arguments are not permitted with -a or -r.\n");
 		return 1;
 	}
 	if (f_ignore && (f_all || ! f_export)) {
-		xlog(L_ERROR, "-i not meaningful with -a, -r or -u");
+		fprintf(stderr,"exportfs: -i not meaningful with -a, -r or -u.\n");
 		return 1;
 	}
 	if (f_reexport && ! f_export) {
-		xlog(L_ERROR, "-r and -u are incompatible");
+		fprintf(stderr, "exportfs: -r and -u are incompatible.\n");
 		return 1;
 	}
 	new_cache = check_new_cache();
@@ -117,10 +102,8 @@ main(int argc, char **argv)
 			if (new_cache)
 				cache_flush(1);
 			else {
-				xlog(L_ERROR, "-f is available only "
-					"with new cache controls. "
-					"Mount /proc/fs/nfsd first");
-				return 1;
+				fprintf(stderr, "exportfs: -f: only available with new cache controls: mount /proc/fs/nfsd first\n");
+				exit(1);
 			}
 			return 0;
 		} else {
@@ -129,10 +112,8 @@ main(int argc, char **argv)
 			return 0;
 		}
 	}
-	if (f_export && ! f_ignore) {
+	if (f_export && ! f_ignore)
 		export_read(_PATH_EXPORTS);
-		export_d_read(_PATH_EXPORTS_D);
-	}
 	if (f_export) {
 		if (f_all)
 			export_all(f_verbose);
@@ -250,8 +231,8 @@ static void
 exportfs(char *arg, char *options, int verbose)
 {
 	struct exportent *eep;
-	nfs_export	*exp = NULL;
-	struct addrinfo	*ai = NULL;
+	nfs_export	*exp;
+	struct hostent	*hp = NULL;
 	char		*path;
 	char		*hname = arg;
 	int		htype;
@@ -260,25 +241,36 @@ exportfs(char *arg, char *options, int verbose)
 		*path++ = '\0';
 
 	if (!path || *path != '/') {
-		xlog(L_ERROR, "Invalid exporting option: %s", arg);
+		fprintf(stderr, "Invalid exporting option: %s\n", arg);
 		return;
 	}
 
-	if ((htype = client_gettype(hname)) == MCL_FQDN) {
-		ai = host_addrinfo(hname);
-		if (ai != NULL) {
-			exp = export_find(ai, path);
-			hname = ai->ai_canonname;
-		}
-	} else
+	if ((htype = client_gettype(hname)) == MCL_FQDN &&
+	    (hp = gethostbyname(hname)) != NULL) {
+		struct hostent *hp2 = hostent_dup (hp);
+		hp = gethostbyaddr(hp2->h_addr, hp2->h_length,
+				   hp2->h_addrtype);
+		if (hp) {
+			free(hp2);
+			hp = hostent_dup(hp);
+		} else
+			hp = hp2;
+		exp = export_find(hp, path);
+		hname = hp->h_name;
+	} else {
 		exp = export_lookup(hname, path, 0);
+	}
 
 	if (!exp) {
 		if (!(eep = mkexportent(hname, path, options)) ||
-		    !(exp = export_create(eep, 0)))
-			goto out;
-	} else if (!updateexportent(&exp->m_export, options))
-		goto out;
+		    !(exp = export_create(eep, 0))) {
+			if (hp) free (hp);
+			return;
+		}
+	} else if (!updateexportent(&exp->m_export, options)) {
+		if (hp) free (hp);
+		return;
+	}
 
 	if (verbose)
 		printf("exporting %s:%s\n", exp->m_client->m_hostname, 
@@ -288,16 +280,14 @@ exportfs(char *arg, char *options, int verbose)
 	exp->m_changed = 1;
 	exp->m_warned = 0;
 	validate_export(exp);
-
-out:
-	freeaddrinfo(ai);
+	if (hp) free (hp);
 }
 
 static void
 unexportfs(char *arg, int verbose)
 {
 	nfs_export	*exp;
-	struct addrinfo *ai = NULL;
+	struct hostent	*hp = NULL;
 	char		*path;
 	char		*hname = arg;
 	int		htype;
@@ -306,14 +296,16 @@ unexportfs(char *arg, int verbose)
 		*path++ = '\0';
 
 	if (!path || *path != '/') {
-		xlog(L_ERROR, "Invalid unexporting option: %s", arg);
+		fprintf(stderr, "Invalid unexporting option: %s\n",
+			arg);
 		return;
 	}
 
 	if ((htype = client_gettype(hname)) == MCL_FQDN) {
-		ai = host_addrinfo(hname);
-		if (ai)
-			hname = ai->ai_canonname;
+		if ((hp = gethostbyname(hname)) != 0) {
+			hp = hostent_dup (hp);
+			hname = (char *) hp->h_name;
+		}
 	}
 
 	for (exp = exportlist[htype].p_head; exp; exp = exp->m_next) {
@@ -349,7 +341,7 @@ unexportfs(char *arg, int verbose)
 		exp->m_mayexport = 0;
 	}
 
-	freeaddrinfo(ai);
+	if (hp) free (hp);
 }
 
 static int can_test(void)
@@ -401,12 +393,14 @@ validate_export(nfs_export *exp)
 	int fs_has_fsid = 0;
 
 	if (stat(path, &stb) < 0) {
-		xlog(L_ERROR, "Failed to stat %s: %m", path);
+		fprintf(stderr, "exportfs: Warning: %s does not exist\n",
+			path);
 		return;
 	}
 	if (!S_ISDIR(stb.st_mode) && !S_ISREG(stb.st_mode)) {
-		xlog(L_ERROR, "%s is neither a directory nor a file. "
-			"Remote access will fail", path);
+		fprintf(stderr, "exportfs: Warning: %s is neither "
+			"a directory nor a file.\n"
+			"     remote access will fail\n", path);
 		return;
 	}
 	if (!can_test())
@@ -419,161 +413,24 @@ validate_export(nfs_export *exp)
 	if ((exp->m_export.e_flags & NFSEXP_FSID) || exp->m_export.e_uuid ||
 	    fs_has_fsid) {
 		if ( !test_export(path, 1)) {
-			xlog(L_ERROR, "%s does not support NFS export", path);
+			fprintf(stderr, "exportfs: Warning: %s does not "
+				"support NFS export.\n",
+				path);
 			return;
 		}
 	} else if ( ! test_export(path, 0)) {
 		if (test_export(path, 1))
-			xlog(L_ERROR, "%s requires fsid= for NFS export", path);
+			fprintf(stderr, "exportfs: Warning: %s requires fsid= "
+				"for NFS export\n", path);
 		else
-			xlog(L_ERROR, "%s does not support NFS export", path);
+			fprintf(stderr, "exportfs: Warning: %s does not "
+				"support NFS export.\n",
+				path);
 		return;
 
 	}
 }
 
-static _Bool
-is_hostname(const char *sp)
-{
-	if (*sp == '\0' || *sp == '@')
-		return false;
-
-	for (; *sp != '\0'; sp++) {
-		if (*sp == '*' || *sp == '?' || *sp == '[' || *sp == '/')
-			return false;
-		if (*sp == '\\' && sp[1] != '\0')
-			sp++;
-	}
-
-	return true;
-}
-
-/*
- * Take care to perform an explicit reverse lookup on presentation
- * addresses.  Otherwise we don't get a real canonical name or a
- * complete list of addresses.
- */
-static struct addrinfo *
-address_list(const char *hostname)
-{
-	struct addrinfo *ai;
-	char *cname;
-
-	ai = host_pton(hostname);
-	if (ai != NULL) {
-		/* @hostname was a presentation address */
-		cname = host_canonname(ai->ai_addr);
-		freeaddrinfo(ai);
-		if (cname != NULL)
-			goto out;
-	}
-	/* @hostname was a hostname or had no reverse mapping */
-	cname = strdup(hostname);
-	if (cname == NULL)
-		return NULL;
-
-out:
-	ai = host_addrinfo(cname);
-	free(cname);
-	return ai;
-}
-
-static int
-matchhostname(const char *hostname1, const char *hostname2)
-{
-	struct addrinfo *results1 = NULL, *results2 = NULL;
-	struct addrinfo *ai1, *ai2;
-	int result = 0;
-
-	if (strcasecmp(hostname1, hostname2) == 0)
-		return 1;
-
-	/*
-	 * Don't pass export wildcards or netgroup names to DNS
-	 */
-	if (!is_hostname(hostname1) || !is_hostname(hostname2))
-		return 0;
-
-	results1 = address_list(hostname1);
-	if (results1 == NULL)
-		goto out;
-	results2 = address_list(hostname2);
-	if (results2 == NULL)
-		goto out;
-
-	if (strcasecmp(results1->ai_canonname, results2->ai_canonname) == 0) {
-		result = 1;
-		goto out;
-	}
-
-	for (ai1 = results1; ai1 != NULL; ai1 = ai1->ai_next)
-		for (ai2 = results2; ai2 != NULL; ai2 = ai2->ai_next)
-			if (nfs_compare_sockaddr(ai1->ai_addr, ai2->ai_addr)) {
-				result = 1;
-				break;
-			}
-
-out:
-	freeaddrinfo(results1);
-	freeaddrinfo(results2);
-	return result;
-}
-
-/* Based on mnt_table_parse_dir() in
-   util-linux-ng/shlibs/mount/src/tab_parse.c */
-static void
-export_d_read(const char *dname)
-{
-	int n = 0, i;
-	struct dirent **namelist = NULL;
-
-
-	n = scandir(dname, &namelist, NULL, versionsort);
-	if (n < 0) {
-		if (errno == ENOENT)
-			/* Silently return */
-			return;
-		xlog(L_NOTICE, "scandir %s: %s", dname, strerror(errno));
-	} else if (n == 0)
-		return;
-
-	for (i = 0; i < n; i++) {
-		struct dirent *d = namelist[i];
-		size_t namesz;
-		char fname[PATH_MAX + 1];
-		int fname_len;
-
-
-		if (d->d_type != DT_UNKNOWN 
-		    && d->d_type != DT_REG
-		    && d->d_type != DT_LNK)
-			continue;
-		if (*d->d_name == '.')
-			continue;
-
-#define _EXT_EXPORT_SIZ   (sizeof(_EXT_EXPORT) - 1)
-		namesz = strlen(d->d_name);
-		if (!namesz 
-		    || namesz < _EXT_EXPORT_SIZ + 1
-		    || strcmp(d->d_name + (namesz - _EXT_EXPORT_SIZ),
-			      _EXT_EXPORT))
-			continue;
-
-		fname_len = snprintf(fname, PATH_MAX +1, "%s/%s", dname, d->d_name);
-		if (fname_len > PATH_MAX) {
-			xlog(L_WARNING, "Too long file name: %s in %s", d->d_name, dname);
-			continue;
-		}
-
-		export_read(fname);
-	}
-		
-	for (i = 0; i < n; i++)
-		free(namelist[i]);
-	free(namelist);
-
-	return;
-}
 
 static char
 dumpopt(char c, char *fmt, ...)
@@ -677,13 +534,13 @@ dump(int verbose)
 static void
 error(nfs_export *exp, int err)
 {
-	xlog(L_ERROR, "%s:%s: %s", exp->m_client->m_hostname,
+	fprintf(stderr, "%s:%s: %s\n", exp->m_client->m_hostname, 
 		exp->m_export.e_path, strerror(err));
 }
 
 static void
-usage(const char *progname)
+usage(void)
 {
-	fprintf(stderr, "usage: %s [-aruv] [host:/path]\n", progname);
+	fprintf(stderr, "usage: exportfs [-aruv] [host:/path]\n");
 	exit(1);
 }

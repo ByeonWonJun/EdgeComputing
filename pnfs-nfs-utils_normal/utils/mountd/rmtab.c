@@ -16,7 +16,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
-
+#include "xmalloc.h"
 #include "misc.h"
 #include "exportfs.h"
 #include "xio.h"
@@ -131,22 +131,22 @@ mountlist_del(char *hname, const char *path)
 }
 
 void
-mountlist_del_all(const struct sockaddr *sap)
+mountlist_del_all(struct sockaddr_in *sin)
 {
-	char		*hostname;
+	struct in_addr	addr = sin->sin_addr;
+	struct hostent	*hp;
 	struct rmtabent	*rep;
+	nfs_export	*exp;
 	FILE		*fp;
 	int		lockid;
 
 	if ((lockid = xflock(_PATH_RMTABLCK, "w")) < 0)
 		return;
-	hostname = host_canonname(sap);
-	if (hostname == NULL) {
-		char buf[INET6_ADDRSTRLEN];
-		xlog(L_ERROR, "can't get hostname of %s",
-			host_ntop(sap, buf, sizeof(buf)));
+	if (!(hp = gethostbyaddr((char *)&addr, sizeof(addr), AF_INET))) {
+		xlog(L_ERROR, "can't get hostname of %s", inet_ntoa(addr));
 		goto out_unlock;
 	}
+	hp = hostent_dup (hp);
 
 	if (!setrmtabent("r"))
 		goto out_free;
@@ -155,8 +155,8 @@ mountlist_del_all(const struct sockaddr *sap)
 		goto out_close;
 
 	while ((rep = getrmtabent(1, NULL)) != NULL) {
-		if (strcmp(rep->r_client, hostname) == 0 &&
-		    auth_authenticate("umountall", sap, rep->r_path) != NULL)
+		if (strcmp(rep->r_client, hp->h_name) == 0 &&
+		    (exp = auth_authenticate("umountall", sin, rep->r_path)))
 			continue;
 		fputrmtabent(fp, rep, NULL);
 	}
@@ -168,21 +168,9 @@ mountlist_del_all(const struct sockaddr *sap)
 out_close:
 	endrmtabent();	/* close & unlink */
 out_free:
-	free(hostname);
+	free (hp);
 out_unlock:
 	xfunlock(lockid);
-}
-
-static void
-mountlist_freeall(mountlist list)
-{
-	while (list != NULL) {
-		mountlist m = list;
-		list = m->ml_next;
-		free(m->ml_hostname);
-		free(m->ml_directory);
-		free(m);
-	}
 }
 
 mountlist
@@ -194,6 +182,8 @@ mountlist_list(void)
 	struct rmtabent		*rep;
 	struct stat		stb;
 	int			lockid;
+	struct in_addr		addr;
+	struct hostent		*he;
 
 	if ((lockid = xflock(_PATH_RMTABLCK, "r")) < 0)
 		return NULL;
@@ -204,42 +194,26 @@ mountlist_list(void)
 		return NULL;
 	}
 	if (stb.st_mtime != last_mtime) {
-		mountlist_freeall(mlist);
-		mlist = NULL;
+		while (mlist) {
+			mlist = (m = mlist)->ml_next;
+			xfree(m->ml_hostname);
+			xfree(m->ml_directory);
+			xfree(m);
+		}
 		last_mtime = stb.st_mtime;
 
 		setrmtabent("r");
 		while ((rep = getrmtabent(1, NULL)) != NULL) {
-			m = calloc(1, sizeof(*m));
-			if (m == NULL) {
-				mountlist_freeall(mlist);
-				mlist = NULL;
-				xlog(L_ERROR, "%s: memory allocation failed",
-						__func__);
-				break;
-			}
+			m = (mountlist) xmalloc(sizeof(*m));
 
-			if (reverse_resolve) {
-				struct addrinfo *ai;
-				ai = host_pton(rep->r_client);
-				if (ai != NULL) {
-					m->ml_hostname = host_canonname(ai->ai_addr);
-					freeaddrinfo(ai);
-				}
-			}
-			if (m->ml_hostname == NULL)
-				m->ml_hostname = strdup(rep->r_client);
+			if (reverse_resolve &&
+			   inet_aton((const char *) rep->r_client, &addr) &&
+			   (he = gethostbyaddr(&addr, sizeof(addr), AF_INET)))
+				m->ml_hostname = xstrdup(he->h_name);
+			else
+				m->ml_hostname = xstrdup(rep->r_client);
 
-			m->ml_directory = strdup(rep->r_path);
-
-			if (m->ml_hostname == NULL || m->ml_directory == NULL) {
-				mountlist_freeall(mlist);
-				mlist = NULL;
-				xlog(L_ERROR, "%s: memory allocation failed",
-						__func__);
-				break;
-			}
-
+ 			m->ml_directory = xstrdup(rep->r_path);
 			m->ml_next = mlist;
 			mlist = m;
 		}

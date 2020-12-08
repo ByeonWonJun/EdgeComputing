@@ -194,13 +194,7 @@ int main(int argc, char **argv)
 	}
 
 	mclient = nfs_get_mount_client(hostname, mount_vers_tbl[vers]);
-	mclient->cl_auth = nfs_authsys_create();
-	if (mclient->cl_auth == NULL) {
-		fprintf(stderr, "%s: unable to create RPC auth handle.\n",
-				program_name);
-		clnt_destroy(mclient);
-		exit(1);
-	}
+	mclient->cl_auth = authunix_create_default();
 	total_timeout.tv_sec = TOTAL_TIMEOUT;
 	total_timeout.tv_usec = 0;
 

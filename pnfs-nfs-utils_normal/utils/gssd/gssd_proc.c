@@ -600,67 +600,6 @@ update_client_list(void)
 	return retval;
 }
 
-/* Encryption types supported by the kernel rpcsec_gss code */
-int num_krb5_enctypes = 0;
-krb5_enctype *krb5_enctypes = NULL;
-
-/*
- * Parse the supported encryption type information
- */
-static int
-parse_enctypes(char *enctypes)
-{
-	int n = 0;
-	char *curr, *comma;
-	int i;
-	static char *cached_types;
-
-	if (cached_types && strcmp(cached_types, enctypes) == 0)
-		return 0;
-	free(cached_types);
-
-	if (krb5_enctypes != NULL) {
-		free(krb5_enctypes);
-		krb5_enctypes = NULL;
-		num_krb5_enctypes = 0;
-	}
-
-	/* count the number of commas */
-	for (curr = enctypes; curr && *curr != '\0'; curr = ++comma) {
-		comma = strchr(curr, ',');
-		if (comma != NULL)
-			n++;
-		else
-			break;
-	}
-	/* If no more commas and we're not at the end, there's one more value */
-	if (*curr != '\0')
-		n++;
-
-	/* Empty string, return an error */
-	if (n == 0)
-		return ENOENT;
-
-	/* Allocate space for enctypes array */
-	if ((krb5_enctypes = (int *) calloc(n, sizeof(int))) == NULL) {
-		return ENOMEM;
-	}
-
-	/* Now parse each value into the array */
-	for (curr = enctypes, i = 0; curr && *curr != '\0'; curr = ++comma) {
-		krb5_enctypes[i++] = atoi(curr);
-		comma = strchr(curr, ',');
-		if (comma == NULL)
-			break;
-	}
-
-	num_krb5_enctypes = n;
-	if ((cached_types = malloc(strlen(enctypes)+1)))
-		strcpy(cached_types, enctypes);
-
-	return 0;
-}
-
 static int
 do_downcall(int k5_fd, uid_t uid, struct authgss_private_data *pd,
 	    gss_buffer_desc *context_token)
@@ -859,7 +798,7 @@ int create_auth_rpc_client(struct clnt_info *clp,
 		 * Do this before creating rpc connection since we won't need
 		 * rpc connection if it fails!
 		 */
-		if (limit_krb5_enctypes(&sec)) {
+		if (limit_krb5_enctypes(&sec, uid)) {
 			printerr(1, "WARNING: Failed while limiting krb5 "
 				    "encryption types for user with uid %d\n",
 				 uid);
@@ -936,7 +875,7 @@ int create_auth_rpc_client(struct clnt_info *clp,
 	if (sec.cred != GSS_C_NO_CREDENTIAL)
 		gss_release_cred(&min_stat, &sec.cred);
 	/* Restore euid to original value */
-	if (((int)save_uid != -1) && (setfsuid(save_uid) != (int)uid)) {
+	if ((save_uid != -1) && (setfsuid(save_uid) != uid)) {
 		printerr(0, "WARNING: Failed to restore fsuid"
 			    " to uid %d from %d\n", save_uid, uid);
 	}
@@ -1161,7 +1100,7 @@ handle_krb5_upcall(struct clnt_info *clp)
 {
 	uid_t			uid;
 
-	if (read(clp->krb5_fd, &uid, sizeof(uid)) < (ssize_t)sizeof(uid)) {
+	if (read(clp->krb5_fd, &uid, sizeof(uid)) < sizeof(uid)) {
 		printerr(0, "WARNING: failed reading uid from krb5 "
 			    "upcall pipe: %s\n", strerror(errno));
 		return;
@@ -1175,7 +1114,7 @@ handle_spkm3_upcall(struct clnt_info *clp)
 {
 	uid_t			uid;
 
-	if (read(clp->spkm3_fd, &uid, sizeof(uid)) < (ssize_t)sizeof(uid)) {
+	if (read(clp->spkm3_fd, &uid, sizeof(uid)) < sizeof(uid)) {
 		printerr(0, "WARNING: failed reading uid from spkm3 "
 			 "upcall pipe: %s\n", strerror(errno));
 		return;
@@ -1194,7 +1133,6 @@ handle_gssd_upcall(struct clnt_info *clp)
 	char			*mech = NULL;
 	char			*target = NULL;
 	char			*service = NULL;
-	char			*enctypes = NULL;
 
 	printerr(1, "handling gssd upcall (%s)\n", clp->dirname);
 
@@ -1236,23 +1174,6 @@ handle_gssd_upcall(struct clnt_info *clp)
 			    "failed to find uid "
 			    "in upcall string '%s'\n", lbuf);
 		goto out;
-	}
-
-	/* read supported encryption types if supplied */
-	if ((p = strstr(lbuf, "enctypes=")) != NULL) {
-		enctypes = malloc(lbuflen);
-		if (!enctypes)
-			goto out;
-		if (sscanf(p, "enctypes=%s", enctypes) != 1) {
-			printerr(0, "WARNING: handle_gssd_upcall: "
-				    "failed to parse encryption types "
-				    "in upcall string '%s'\n", lbuf);
-			goto out;
-		}
-		if (parse_enctypes(enctypes) != 0) {
-			printerr(0, "WARNING: handle_gssd_upcall: "
-				"parsing encryption types failed: errno %d\n", errno);
-		}
 	}
 
 	/* read target name */
@@ -1301,7 +1222,6 @@ handle_gssd_upcall(struct clnt_info *clp)
 out:
 	free(lbuf);
 	free(mech);
-	free(enctypes);
 	free(target);
 	free(service);
 	return;	

@@ -31,7 +31,7 @@ enum {
 	SRVPROC3_SZ = 22,
 	CLTPROC3_SZ = 22,
 	SRVPROC4_SZ = 2,
-	CLTPROC4_SZ = 49,
+	CLTPROC4_SZ = 48,
 	SRVPROC4OPS_SZ = 59,
 };
 
@@ -46,7 +46,7 @@ static unsigned int	cltproc3info[CLTPROC3_SZ+2],
 static unsigned int	srvproc4info[SRVPROC4_SZ+2],
 			srvproc4info_old[SRVPROC4_SZ+2];	/* NFSv4 call counts ([0] == 2) */
 static unsigned int	cltproc4info[CLTPROC4_SZ+2],
-			cltproc4info_old[CLTPROC4_SZ+2];	/* NFSv4 call counts ([0] == 49) */
+			cltproc4info_old[CLTPROC4_SZ+2];	/* NFSv4 call counts ([0] == 48) */
 static unsigned int	srvproc4opsinfo[SRVPROC4OPS_SZ+2],
 			srvproc4opsinfo_old[SRVPROC4OPS_SZ+2];	/* NFSv4 call counts ([0] == 59) */
 static unsigned int	srvnetinfo[5], srvnetinfo_old[5];	/* 0  # of received packets
@@ -118,7 +118,6 @@ static const char *	nfscltproc4name[CLTPROC4_SZ] = {
 	"remove",    "rename",    "link",    "symlink",     "create",      "pathconf",
 	"statfs",    "readlink",  "readdir", "server_caps", "delegreturn", "getacl",
 	"setacl",    "fs_locations",
-	"rel_lkowner", "secinfo",
 	/* nfsv4.1 client ops */
 	"exchange_id",
 	"create_ses",
@@ -127,10 +126,13 @@ static const char *	nfscltproc4name[CLTPROC4_SZ] = {
 	"get_lease_t",
 	"reclaim_comp",
 	"layoutget",
-	"getdevinfo",
 	"layoutcommit",
 	"layoutreturn",
 	"getdevlist",
+	"getdevinfo",
+	/* nfsv4.1 pnfs client ops to data server only */
+	"ds_write",
+	"ds_commit",
 };
 
 static const char *     nfssrvproc4opname[SRVPROC4OPS_SZ] = {
@@ -218,8 +220,8 @@ DECLARE_CLT(cltinfo);
 DECLARE_CLT(cltinfo, _old);
 
 static void		print_all_stats(int, int, int);
-static void		print_server_stats(int);
-static void		print_client_stats(int);
+static void		print_server_stats(int, int);
+static void		print_client_stats(int, int);
 static void		print_stats_list(int, int, int);
 static void		print_numbers(const char *, unsigned int *,
 					unsigned int);
@@ -236,7 +238,7 @@ static int		mounts(const char *);
 
 static void		get_stats(const char *, struct statinfo *, int *, int,
 					int);
-static int		has_stats(const unsigned int *, int);
+static int		has_stats(const unsigned int *);
 static int		has_rpcstats(const unsigned int *, int);
 static void 		diff_stats(struct statinfo *, struct statinfo *, int);
 static void 		unpause(int);
@@ -465,7 +467,7 @@ main(int argc, char **argv)
 		pause();
 	}
 
-	if (opt_since || (opt_sleep && !sleep_time)) {
+	if (opt_since || opt_sleep) {
 		if (opt_srv) {
 			get_stats(NFSSRVSTAT, serverinfo_tmp, &opt_srv, opt_clt, 1);
 			diff_stats(serverinfo_tmp, serverinfo, 1);
@@ -513,16 +515,16 @@ main(int argc, char **argv)
 static void
 print_all_stats (int opt_srv, int opt_clt, int opt_prt)
 {
-	if (opt_srv)
-		print_server_stats(opt_prt);
-
-	if (opt_clt)
-		print_client_stats(opt_prt);
+	print_server_stats(opt_srv, opt_prt);
+	print_client_stats(opt_clt, opt_prt);
 }
 
 static void 
-print_server_stats(int opt_prt) 
+print_server_stats(int opt_srv, int opt_prt) 
 {
+	if (!opt_srv)
+		return;
+
 	if (opt_prt & PRNT_NET) {
 		if (opt_sleep && !has_rpcstats(srvnetinfo, 4)) {
 		} else {
@@ -537,7 +539,7 @@ print_server_stats(int opt_prt)
 			;
 		} else {
 			print_numbers(LABEL_srvrpc
-				"calls      badcalls   badclnt    badauth    xdrcall\n",
+				"calls      badcalls   badauth    badclnt    xdrcall\n",
 				srvrpcinfo, 5);
 			printf("\n");
 		}
@@ -579,29 +581,31 @@ print_server_stats(int opt_prt)
 		printf("\n");
 	}
 	if (opt_prt & PRNT_CALLS) {
-		int has_v2_stats = has_stats(srvproc2info, SRVPROC2_SZ+2);
-		int has_v3_stats = has_stats(srvproc3info, SRVPROC3_SZ+2);
-		int has_v4_stats = has_stats(srvproc4info, SRVPROC4_SZ+2);
-
 		if ((opt_prt & PRNT_V2) || 
-				((opt_prt & PRNT_AUTO) && has_v2_stats)) {
-			if (!opt_sleep || has_v2_stats) {
+				((opt_prt & PRNT_AUTO) && has_stats(srvproc2info))) {
+			if (opt_sleep && !has_stats(srvproc2info)) {
+				;
+			} else {
 				print_callstats(LABEL_srvproc2,
 					nfsv2name, srvproc2info + 1, 
 					sizeof(nfsv2name)/sizeof(char *));
 			}
 		}
 		if ((opt_prt & PRNT_V3) || 
-				((opt_prt & PRNT_AUTO) && has_v3_stats)) {
-			if (!opt_sleep || has_v3_stats) {
+				((opt_prt & PRNT_AUTO) && has_stats(srvproc3info))) {
+			if (opt_sleep && !has_stats(srvproc3info)) {
+				;
+			} else {
 				print_callstats(LABEL_srvproc3,
 					nfsv3name, srvproc3info + 1, 
 					sizeof(nfsv3name)/sizeof(char *));
 			}
 		}
 		if ((opt_prt & PRNT_V4) || 
-				((opt_prt & PRNT_AUTO) && has_v4_stats)) {
-			if (!opt_sleep || has_v4_stats) {
+				((opt_prt & PRNT_AUTO) && has_stats(srvproc4info))) {
+			if (opt_sleep && !has_stats(srvproc4info)) {
+				;
+			} else {
 				print_callstats( LABEL_srvproc4,
 					nfssrvproc4name, srvproc4info + 1, 
 					sizeof(nfssrvproc4name)/sizeof(char *));
@@ -613,8 +617,11 @@ print_server_stats(int opt_prt)
 	}
 }
 static void
-print_client_stats(int opt_prt) 
+print_client_stats(int opt_clt, int opt_prt) 
 {
+	if (!opt_clt)
+		return;
+
 	if (opt_prt & PRNT_NET) {
 		if (opt_sleep && !has_rpcstats(cltnetinfo, 4)) {
 			;
@@ -636,28 +643,31 @@ print_client_stats(int opt_prt)
 		}
 	}
 	if (opt_prt & PRNT_CALLS) {
-		int has_v2_stats = has_stats(cltproc2info, CLTPROC2_SZ+2);
-		int has_v3_stats = has_stats(cltproc3info, CLTPROC3_SZ+2);
-		int has_v4_stats = has_stats(cltproc4info, CLTPROC4_SZ+2);
 		if ((opt_prt & PRNT_V2) || 
-				((opt_prt & PRNT_AUTO) && has_v2_stats)) {
-			if (!opt_sleep || has_v2_stats) {
+				((opt_prt & PRNT_AUTO) && has_stats(cltproc2info))) {
+			if (opt_sleep && !has_stats(cltproc2info)) {
+				;
+			} else {
 				print_callstats(LABEL_cltproc2,
 					nfsv2name, cltproc2info + 1,  
 					sizeof(nfsv2name)/sizeof(char *));
 			}
 		}
 		if ((opt_prt & PRNT_V3) || 
-				((opt_prt & PRNT_AUTO) && has_v3_stats)) {
-			if (!opt_sleep || has_v3_stats) {
+				((opt_prt & PRNT_AUTO) && has_stats(cltproc3info))) {
+			if (opt_sleep && !has_stats(cltproc3info)) {
+				;
+			} else {
 				print_callstats(LABEL_cltproc3,
 					nfsv3name, cltproc3info + 1, 
 					sizeof(nfsv3name)/sizeof(char *));
 			}
 		}
 		if ((opt_prt & PRNT_V4) || 
-				((opt_prt & PRNT_AUTO) && has_v4_stats)) {
-			if (!opt_sleep || has_v4_stats) {
+				((opt_prt & PRNT_AUTO) && has_stats(cltproc4info))) {
+			if (opt_sleep && !has_stats(cltproc4info)) {
+				;
+			} else {
 				print_callstats(LABEL_cltproc4,
 					nfscltproc4name, cltproc4info + 1,  
 					sizeof(nfscltproc4name)/sizeof(char *));
@@ -670,28 +680,34 @@ static void
 print_clnt_list(int opt_prt) 
 {
 	if (opt_prt & PRNT_CALLS) {
-		int has_v2_stats = has_stats(cltproc2info, CLTPROC2_SZ+2);
-		int has_v3_stats = has_stats(cltproc3info, CLTPROC3_SZ+2);
-		int has_v4_stats = has_stats(cltproc4info, CLTPROC4_SZ+2);
 		if ((opt_prt & PRNT_V2) || 
-				((opt_prt & PRNT_AUTO) && has_v2_stats)) {
-			if (!opt_sleep || has_v2_stats) {
+				((opt_prt & PRNT_AUTO) && has_stats(cltproc2info))) {
+			if (opt_sleep && !has_stats(cltproc2info)) {
+				;
+			} else {
 				print_callstats_list("nfs v2 client",
 					nfsv2name, cltproc2info + 1,  
 					sizeof(nfsv2name)/sizeof(char *));
 			}
 		}
 		if ((opt_prt & PRNT_V3) || 
-				((opt_prt & PRNT_AUTO) && has_v3_stats)) {
-			if (!opt_sleep || has_v3_stats) {
+				((opt_prt & PRNT_AUTO) && has_stats(cltproc3info))) {
+			if (opt_sleep && !has_stats(cltproc3info)) {
+				;
+			} else { 
 				print_callstats_list("nfs v3 client",
 					nfsv3name, cltproc3info + 1, 
 					sizeof(nfsv3name)/sizeof(char *));
 			}
 		}
 		if ((opt_prt & PRNT_V4) || 
-				((opt_prt & PRNT_AUTO) && has_v4_stats)) {
-			if (!opt_sleep || has_v4_stats) {
+				((opt_prt & PRNT_AUTO) && has_stats(cltproc4info))) {
+			if (opt_sleep && !has_stats(cltproc4info)) {
+				;
+			} else {
+				print_callstats_list("nfs v4 ops",
+					nfssrvproc4opname, srvproc4opsinfo + 1, 
+					sizeof(nfssrvproc4opname)/sizeof(char *));
 				print_callstats_list("nfs v4 client",
 					nfscltproc4name, cltproc4info + 1,  
 					sizeof(nfscltproc4name)/sizeof(char *));
@@ -703,32 +719,32 @@ static void
 print_serv_list(int opt_prt) 
 {
 	if (opt_prt & PRNT_CALLS) {
-		int has_v2_stats = has_stats(srvproc2info, SRVPROC2_SZ+2);
-		int has_v3_stats = has_stats(srvproc3info, SRVPROC3_SZ+2);
-		int has_v4_stats = has_stats(srvproc4info, SRVPROC4_SZ+2);
 		if ((opt_prt & PRNT_V2) || 
-				((opt_prt & PRNT_AUTO) && has_v2_stats)) {
-			if (!opt_sleep || has_v2_stats) {
+				((opt_prt & PRNT_AUTO) && has_stats(srvproc2info))) {
+			if (opt_sleep && !has_stats(srvproc2info)) {
+				;
+			} else {
 				print_callstats_list("nfs v2 server",
 					nfsv2name, srvproc2info + 1, 
 					sizeof(nfsv2name)/sizeof(char *));
 			}
 		}
 		if ((opt_prt & PRNT_V3) || 
-				((opt_prt & PRNT_AUTO) && has_v3_stats)) {
-			if (!opt_sleep || has_v3_stats) {
+				((opt_prt & PRNT_AUTO) && has_stats(srvproc3info))) {
+			if (opt_sleep && !has_stats(srvproc3info)) {
+				;
+			} else {
 				print_callstats_list("nfs v3 server",
 					nfsv3name, srvproc3info + 1, 
 					sizeof(nfsv3name)/sizeof(char *));
 			}
 		}
 		if ((opt_prt & PRNT_V4) || 
-				((opt_prt & PRNT_AUTO) && has_v4_stats)) {
-			if (!opt_sleep || has_v4_stats) {
-				print_callstats_list("nfs v4 server",
-					nfssrvproc4name, srvproc4info + 1, 
-					sizeof(nfssrvproc4name)/sizeof(char *));
-				print_callstats_list("nfs v4 servop",
+				((opt_prt & PRNT_AUTO) && has_stats(srvproc4opsinfo))) {
+			if (opt_sleep && !has_stats(srvproc4info)) {
+				;
+			} else {
+				print_callstats_list("nfs v4 ops",
 					nfssrvproc4opname, srvproc4opsinfo + 1, 
 					sizeof(nfssrvproc4opname)/sizeof(char *));
 			}
@@ -775,7 +791,7 @@ print_callstats(const char *hdr, const char **names,
 {
 	unsigned long long	total;
 	unsigned long long	pct;
-	unsigned int		i, j;
+	int		i, j;
 
 	fputs(hdr, stdout);
 	for (i = 0, total = 0; i < nr; i++)
@@ -800,7 +816,7 @@ print_callstats_list(const char *hdr, const char **names,
 		 	unsigned int *callinfo, unsigned int nr)
 {
 	unsigned long long	calltotal;
-	unsigned int			i;
+	int			i;
 
 	for (i = 0, calltotal = 0; i < nr; i++) {
 		calltotal += callinfo[i];
@@ -1037,9 +1053,9 @@ out:
  * there are stats if the sum's greater than the entry-count.
  */
 static int
-has_stats(const unsigned int *info, int nr)
+has_stats(const unsigned int *info)
 {
-	return (info[0] && info[nr-1] > info[0]);
+	return (info[0] && info[info[0] + 1] > info[0]);
 }
 static int
 has_rpcstats(const unsigned int *info, int size)
@@ -1102,7 +1118,7 @@ unpause(int sig)
 	time_diff = difftime(endtime, starttime);
 	minutes = time_diff / 60;
 	seconds = (int)time_diff % 60;
-	printf("Signal %d received; displaying (only) statistics gathered over the last %d minutes, %d seconds:\n\n", sig, minutes, seconds);
+	printf("Signal received; displaying (only) statistics gathered over the last %d minutes, %d seconds:\n\n", minutes, seconds);
 }
 
 static void

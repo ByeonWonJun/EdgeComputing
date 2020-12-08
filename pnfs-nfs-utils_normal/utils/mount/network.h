@@ -16,8 +16,8 @@
  *
  * You should have received a copy of the GNU General Public
  * License along with this program; if not, write to the
- * Free Software Foundation, Inc.,
- * 51 Franklin Street, Fifth Floor, Boston, MA 0211-1301 USA
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+ * Boston, MA 021110-1307, USA.
  *
  */
 
@@ -74,8 +74,5 @@ int nfs_advise_umount(const struct sockaddr *, const socklen_t,
 		      const struct pmap *, const dirpath *);
 CLIENT *mnt_openclnt(clnt_addr_t *, int *);
 void mnt_closeclnt(CLIENT *, int);
-
-int nfs_umount_do_umnt(struct mount_options *options,
-		       char **hostname, char **dirname);
 
 #endif	/* _NFS_UTILS_MOUNT_NETWORK_H */

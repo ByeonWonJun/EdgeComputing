@@ -49,7 +49,7 @@
 #include "conffile.h"
 #include "xlog.h"
 
-static void conf_load_defaults(void);
+static void conf_load_defaults (int);
 static int conf_set(int , char *, char *, char *, 
 	char *, int , int );
 
@@ -212,7 +212,7 @@ conf_parse_line(int trans, char *line, size_t sz)
 {
 	char *val, *ptr;
 	size_t i;
-	size_t j;
+	int j;
 	static char *section = 0;
 	static char *arg = 0;
 	static int ln = 0;
@@ -251,7 +251,6 @@ conf_parse_line(int trans, char *line, size_t sz)
 		}
 		/* Strip off any blanks before ']' */
 		val = line;
-		j=0;
 		while (*val && !isblank(*val)) 
 			val++, j++;
 		if (*val)
@@ -272,9 +271,9 @@ conf_parse_line(int trans, char *line, size_t sz)
 		if (ptr == NULL)
 			return;
 		line = ++ptr;
-		while (*ptr && *ptr != '"' && *ptr != ']')
+		while (*ptr && *ptr != '"')
 			ptr++;
-		if (*ptr == '\0' || *ptr == ']') {
+		if (*ptr == '\0') {
 			xlog_warn("config file error: line %d: "
  				"non-matched '\"', ignoring until next section", ln);
 		}  else {
@@ -354,7 +353,7 @@ conf_parse(int trans, char *buf, size_t sz)
 }
 
 static void
-conf_load_defaults(void)
+conf_load_defaults(int tr)
 {
 	/* No defaults */
 	return;
@@ -413,7 +412,7 @@ conf_reinit(void)
 		trans = conf_begin();
 
 	/* Load default configuration values.  */
-	conf_load_defaults();
+	conf_load_defaults(trans);
 
 	/* Free potential existing configuration.  */
 	if (conf_addr) {

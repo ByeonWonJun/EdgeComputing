@@ -15,16 +15,16 @@
  *
  * You should have received a copy of the GNU General Public
  * License along with this program; if not, write to the
- * Free Software Foundation, Inc.,
- * 51 Franklin Street, Fifth Floor, Boston, MA 0211-1301 USA
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+ * Boston, MA 021110-1307, USA.
  *
  */
 
 #ifndef _NFS_UTILS_MOUNT_VERSION_H
 #define _NFS_UTILS_MOUNT_VERSION_H
 
-#include <stdio.h>
-#include <limits.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include <sys/utsname.h>
 
@@ -37,16 +37,14 @@ static inline unsigned int MAKE_VERSION(unsigned int p, unsigned int q,
 static inline unsigned int linux_version_code(void)
 {
 	struct utsname my_utsname;
-	unsigned int p, q = 0, r = 0;
+	unsigned int p, q, r;
 
-	/* UINT_MAX as backward compatibility code should not be run */
 	if (uname(&my_utsname))
-		return UINT_MAX;
+		return 0;
 
-	/* UINT_MAX as future versions might not start with an integer */
-	if (sscanf(my_utsname.release, "%u.%u.%u", &p, &q, &r) < 1)
-		return UINT_MAX;
-	
+	p = atoi(strtok(my_utsname.release, "."));
+	q = atoi(strtok(NULL, "."));
+	r = atoi(strtok(NULL, "."));
 	return MAKE_VERSION(p, q, r);
 }
 

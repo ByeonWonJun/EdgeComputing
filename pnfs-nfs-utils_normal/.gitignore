@@ -36,7 +36,6 @@ support/include/stamp-h1
 lib*.a
 tools/rpcgen/rpcgen
 tools/rpcdebug/rpcdebug
-utils/blkmapd/blkmapd
 utils/exportfs/exportfs
 utils/idmapd/idmapd
 utils/lockd/lockd
@@ -49,7 +48,6 @@ utils/rquotad/rquotad
 utils/rquotad/rquota.h
 utils/rquotad/rquota_xdr.c
 utils/showmount/showmount
-utils/spnfsd/spnfsd
 utils/statd/statd
 tools/locktest/testlk
 tools/getiversion/getiversion
@@ -66,7 +64,6 @@ tests/nsm_client/nlm_sm_inter.h
 tests/nsm_client/nlm_sm_inter_clnt.c
 tests/nsm_client/nlm_sm_inter_svc.c
 tests/nsm_client/nlm_sm_inter_xdr.c
-utils/nfsidmap/nfsidmap
 # cscope database files
 cscope.*
 # generic editor backup et al

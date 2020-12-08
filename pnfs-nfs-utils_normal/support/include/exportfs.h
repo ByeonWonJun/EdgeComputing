@@ -10,8 +10,6 @@
 #define EXPORTFS_H
 
 #include <netdb.h>
-
-#include "sockaddr.h"
 #include "nfslib.h"
 
 enum {
@@ -37,55 +35,10 @@ typedef struct mclient {
 	char *			m_hostname;
 	int			m_type;
 	int			m_naddr;
-	union nfs_sockaddr	m_addrlist[NFSCLNT_ADDRMAX];
+	struct in_addr		m_addrlist[NFSCLNT_ADDRMAX];
 	int			m_exported;	/* exported to nfsd */
 	int			m_count;
 } nfs_client;
-
-static inline const struct sockaddr *
-get_addrlist(const nfs_client *clp, const int i)
-{
-	return &clp->m_addrlist[i].sa;
-}
-
-static inline const struct sockaddr_in *
-get_addrlist_in(const nfs_client *clp, const int i)
-{
-	return &clp->m_addrlist[i].s4;
-}
-
-static inline const struct sockaddr_in6 *
-get_addrlist_in6(const nfs_client *clp, const int i)
-{
-	return &clp->m_addrlist[i].s6;
-}
-
-static inline void
-set_addrlist_in(nfs_client *clp, const int i, const struct sockaddr_in *sin)
-{
-	memcpy(&clp->m_addrlist[i].s4, sin, sizeof(*sin));
-}
-
-static inline void
-set_addrlist_in6(nfs_client *clp, const int i, const struct sockaddr_in6 *sin6)
-{
-	memcpy(&clp->m_addrlist[i].s6, sin6, sizeof(*sin6));
-}
-
-static inline void
-set_addrlist(nfs_client *clp, const int i, const struct sockaddr *sap)
-{
-	switch (sap->sa_family) {
-	case AF_INET:
-		memcpy(&clp->m_addrlist[i].s4, sap, sizeof(struct sockaddr_in));
-		break;
-#ifdef IPV6_SUPPORTED
-	case AF_INET6:
-		memcpy(&clp->m_addrlist[i].s6, sap, sizeof(struct sockaddr_in6));
-		break;
-#endif
-	}
-}
 
 typedef struct mexport {
 	struct mexport *	m_next;
@@ -100,7 +53,6 @@ typedef struct mexport {
 } nfs_export;
 
 #define HASH_TABLE_SIZE 1021
-#define DEFAULT_TTL	(30 * 60)
 
 typedef struct _exp_hash_entry {
 	nfs_export * p_first;
@@ -117,26 +69,26 @@ extern exp_hash_table exportlist[MCL_MAXTYPES];
 extern nfs_client *		clientlist[MCL_MAXTYPES];
 
 nfs_client *			client_lookup(char *hname, int canonical);
-nfs_client *			client_dup(const nfs_client *clp,
-						const struct addrinfo *ai);
+nfs_client *			client_find(struct hostent *);
+void				client_add(nfs_client *);
+nfs_client *			client_dup(nfs_client *, struct hostent *);
 int				client_gettype(char *hname);
-int				client_check(const nfs_client *clp,
-						const struct addrinfo *ai);
+int				client_check(nfs_client *, struct hostent *);
+int				client_match(nfs_client *, char *hname);
 void				client_release(nfs_client *);
 void				client_freeall(void);
-char *				client_compose(const struct addrinfo *ai);
-struct addrinfo *		client_resolve(const struct sockaddr *sap);
-int 				client_member(const char *client,
-						const char *name);
+char *				client_compose(struct hostent *he);
+struct hostent *		client_resolve(struct in_addr addr);
+int 				client_member(char *client, char *name);
 
-void				export_read(char *fname);
+int				export_read(char *fname);
+void			export_add(nfs_export *);
 void				export_reset(nfs_export *);
 nfs_export *			export_lookup(char *hname, char *path, int caconical);
-nfs_export *			export_find(const struct addrinfo *ai,
-						const char *path);
-nfs_export *			export_allowed(const struct addrinfo *ai,
-						const char *path);
+nfs_export *			export_find(struct hostent *, char *path);
+nfs_export *			export_allowed(struct hostent *, char *path);
 nfs_export *			export_create(struct exportent *, int canonical);
+nfs_export *			export_dup(nfs_export *, struct hostent *);
 void				export_freeall(void);
 int				export_export(nfs_export *);
 int				export_unexport(nfs_export *);
@@ -148,19 +100,6 @@ int				xtab_export_write(void);
 void				xtab_append(nfs_export *);
 
 int				secinfo_addflavor(struct flav_info *, struct exportent *);
-
-char *				host_ntop(const struct sockaddr *sap,
-						char *buf, const size_t buflen);
-__attribute_malloc__
-struct addrinfo *		host_pton(const char *paddr);
-__attribute_malloc__
-struct addrinfo *		host_addrinfo(const char *hostname);
-__attribute_malloc__
-char *				host_canonname(const struct sockaddr *sap);
-__attribute_malloc__
-struct addrinfo *		host_reliable_addrinfo(const struct sockaddr *sap);
-__attribute_malloc__
-struct addrinfo *		host_numeric_addrinfo(const struct sockaddr *sap);
 
 int				rmtab_read(void);
 

@@ -117,24 +117,8 @@ struct idmap_client {
 	TAILQ_ENTRY(idmap_client)  ic_next;
 };
 static struct idmap_client nfsd_ic[2] = {
-{
-	.ic_which = IC_IDNAME, 
-	.ic_clid = "", 
-	.ic_id = "Server", 
-	.ic_path = IC_IDNAME_CHAN, 
-	.ic_fd = -1, 
-	.ic_dirfd = -1, 
-	.ic_scanned = 0
-},
-{
-	.ic_which = IC_NAMEID, 
-	.ic_clid = "", 
-	.ic_id = "Server", 
-	.ic_path = IC_NAMEID_CHAN, 
-	.ic_fd = -1, 
-	.ic_dirfd = -1, 
-	.ic_scanned = 0
-},
+{IC_IDNAME, "Server", "", IC_IDNAME_CHAN, -1, -1, 0},
+{IC_NAMEID, "Server", "", IC_NAMEID_CHAN, -1, -1, 0},
 };
 
 TAILQ_HEAD(idmap_clientq, idmap_client);
@@ -158,6 +142,10 @@ static int nfsdopenone(struct idmap_client *);
 static void nfsdreopen_one(struct idmap_client *);
 static void nfsdreopen(void);
 
+size_t  strlcat(char *, const char *, size_t);
+size_t  strlcpy(char *, const char *, size_t);
+ssize_t atomicio(ssize_t (*f) (int, void*, size_t),
+		 int, void *, size_t);
 void    mydaemon(int, int);
 void    release_parent(void);
 
@@ -182,7 +170,7 @@ flush_nfsd_cache(char *path, time_t now)
 	fd = open(path, O_RDWR);
 	if (fd == -1)
 		return -1;
-	if (write(fd, stime, strlen(stime)) != (ssize_t)strlen(stime)) {
+	if (write(fd, stime, strlen(stime)) != strlen(stime)) {
 		errx(1, "Flushing nfsd cache failed: errno %d (%s)",
 			errno, strerror(errno));
 	}
@@ -393,7 +381,7 @@ main(int argc, char **argv)
 }
 
 static void
-dirscancb(int UNUSED(fd), short UNUSED(which), void *data)
+dirscancb(int fd, short which, void *data)
 {
 	int nent, i;
 	struct dirent **ents;
@@ -477,13 +465,13 @@ out:
 }
 
 static void
-svrreopen(int UNUSED(fd), short UNUSED(which), void *UNUSED(data))
+svrreopen(int fd, short which, void *data)
 {
 	nfsdreopen();
 }
 
 static void
-clntscancb(int UNUSED(fd), short UNUSED(which), void *data)
+clntscancb(int fd, short which, void *data)
 {
 	struct idmap_clientq *icq = data;
 	struct idmap_client *ic;
@@ -497,7 +485,7 @@ clntscancb(int UNUSED(fd), short UNUSED(which), void *data)
 }
 
 static void
-nfsdcb(int UNUSED(fd), short which, void *data)
+nfsdcb(int fd, short which, void *data)
 {
 	struct idmap_client *ic = data;
 	struct idmap_msg im;
@@ -672,7 +660,7 @@ imconv(struct idmap_client *ic, struct idmap_msg *im)
 }
 
 static void
-nfscb(int UNUSED(fd), short which, void *data)
+nfscb(int fd, short which, void *data)
 {
 	struct idmap_client *ic = data;
 	struct idmap_msg im;
@@ -778,8 +766,8 @@ nfsopen(struct idmap_client *ic)
 	} else {
 		event_set(&ic->ic_event, ic->ic_fd, EV_READ, nfscb, ic);
 		event_add(&ic->ic_event, NULL);
-		fcntl(ic->ic_dirfd, F_NOTIFY, 0);
 		fcntl(ic->ic_dirfd, F_SETSIG, 0);
+		fcntl(ic->ic_dirfd, F_NOTIFY, 0);
 		if (verbose > 0)
 			xlog_warn("Opened %s", ic->ic_path);
 	}
@@ -857,7 +845,7 @@ nametoidres(struct idmap_msg *im)
 static int
 validateascii(char *string, u_int32_t len)
 {
-	u_int32_t i;
+	int i;
 
 	for (i = 0; i < len; i++) {
 		if (string[i] == '\0')
@@ -913,7 +901,7 @@ static int
 getfield(char **bpp, char *fld, size_t fldsz)
 {
 	char *bp;
-	int val, n;
+	u_int val, n;
 
 	while ((bp = strsep(bpp, " ")) != NULL && bp[0] == '\0')
 		;
@@ -925,9 +913,9 @@ getfield(char **bpp, char *fld, size_t fldsz)
 		if (*bp == '\\') {
 			if ((n = sscanf(bp, "\\%03o", &val)) != 1)
 				return (-1);
-			if (val > UCHAR_MAX)
+			if (val > (char)-1)
 				return (-1);
-			*fld++ = val;
+			*fld++ = (char)val;
 			bp += 4;
 		} else {
 			*fld++ = *bp;

@@ -17,8 +17,7 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
-Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
-MA 02110-1301 USA
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 """
 
 import sys, os, time
@@ -86,12 +85,6 @@ class DeviceData:
             self.__nfs_data['fstype'] = words[7]
             if words[7] == 'nfs':
                 self.__nfs_data['statvers'] = words[8]
-        elif 'nfs' in words or 'nfs4' in words:
-            self.__nfs_data['export'] = words[0]
-            self.__nfs_data['mountpoint'] = words[3]
-            self.__nfs_data['fstype'] = words[6]
-            if words[6] == 'nfs':
-                self.__nfs_data['statvers'] = words[7]
         elif words[0] == 'age:':
             self.__nfs_data['age'] = long(words[1])
         elif words[0] == 'opts:':
@@ -373,12 +366,6 @@ class DeviceData:
         sends = float(self.__rpc_data['rpcsends'])
         if sample_time == 0:
             sample_time = float(self.__nfs_data['age'])
-        #  sample_time could still be zero if the export was just mounted.
-        #  Set it to 1 to avoid divide by zero errors in this case since we'll
-        #  likely still have relevant mount statistics to show.
-        #
-        if sample_time == 0:
-            sample_time = 1;
         if sends != 0:
             backlog = (float(self.__rpc_data['backlogutil']) / sends) / sample_time
         else:
@@ -432,9 +419,6 @@ def parse_stats_file(filename):
         if words[0] == 'device':
             key = words[4]
             new = [ line.strip() ]
-        elif 'nfs' in words or 'nfs4' in words:
-            key = words[3]
-            new = [ line.strip() ]
         else:
             new += [ line.strip() ]
         ms_dict[key] = new
@@ -445,6 +429,7 @@ def parse_stats_file(filename):
 def print_iostat_summary(old, new, devices, time, options):
     stats = {}
     diff_stats = {}
+
     if old:
         # Trim device list to only include intersection of old and new data,
         # this addresses umounts due to autofs mountpoints
@@ -561,6 +546,7 @@ client are listed.
     parser.add_option_group(displaygroup)
 
     (options, args) = parser.parse_args(sys.argv)
+
     for arg in args:
 
         if arg == sys.argv[0]:

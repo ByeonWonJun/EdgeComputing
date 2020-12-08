@@ -15,22 +15,25 @@
 #include <netdb.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#include <sys/stat.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
-#include <stdlib.h>
 
 #include "nfslib.h"
 #include "xlog.h"
 
-#ifndef NFSD_FS_DIR
-#define NFSD_FS_DIR	  "/proc/fs/nfsd"
-#endif
+/*
+ * IPv6 support for nfsd was finished before some of the other daemons (mountd
+ * and statd in particular). That could be a problem in the future if someone
+ * were to boot a kernel that supports IPv6 serving with an older nfs-utils. For
+ * now, hardcode the IPv6 switch into the off position until the other daemons
+ * are functional.
+ */
+#undef IPV6_SUPPORTED
 
-#define NFSD_PORTS_FILE   NFSD_FS_DIR "/portlist"
-#define NFSD_VERS_FILE    NFSD_FS_DIR "/versions"
-#define NFSD_THREAD_FILE  NFSD_FS_DIR "/threads"
+#define NFSD_PORTS_FILE     "/proc/fs/nfsd/portlist"
+#define NFSD_VERS_FILE    "/proc/fs/nfsd/versions"
+#define NFSD_THREAD_FILE  "/proc/fs/nfsd/threads"
 
 /*
  * declaring a common static scratch buffer here keeps us from having to
@@ -39,46 +42,6 @@
  * routines below however.
  */
 char buf[128];
-
-/*
- * Using the "new" interfaces for nfsd requires that /proc/fs/nfsd is
- * actually mounted. Make an attempt to mount it here if it doesn't appear
- * to be. If the mount attempt fails, no big deal -- fall back to using nfsctl
- * instead.
- */
-void
-nfssvc_mount_nfsdfs(char *progname)
-{
-	int err;
-	struct stat statbuf;
-
-	err = stat(NFSD_THREAD_FILE, &statbuf);
-	if (err == 0)
-		return;
-
-	if (errno != ENOENT) {
-		xlog(L_ERROR, "Unable to stat %s: errno %d (%m)",
-				NFSD_THREAD_FILE, errno);
-		return;
-	}
-
-	/*
-	 * this call can return an error if modprobe is set up to automatically
-	 * mount nfsdfs when nfsd.ko is plugged in. So, ignore the return
-	 * code from it and just check for the "threads" file afterward.
-	 */
-	system("/bin/mount -t nfsd nfsd " NFSD_FS_DIR " >/dev/null 2>&1");
-
-	err = stat(NFSD_THREAD_FILE, &statbuf);
-	if (err == 0)
-		return;
-
-	xlog(L_WARNING, "Unable to access " NFSD_FS_DIR " errno %d (%m)." 
-		"\nPlease try, as root, 'mount -t nfsd nfsd " NFSD_FS_DIR 
-		"' and then restart %s to correct the problem", errno, progname);
-
-	return;
-}
 
 /*
  * Are there already sockets configured? If not, then it is safe to try to
@@ -174,13 +137,8 @@ nfssvc_setfds(const struct addrinfo *hints, const char *node, const char *port)
 		sockfd = socket(addr->ai_family, addr->ai_socktype,
 				addr->ai_protocol);
 		if (sockfd < 0) {
-			if (errno == EAFNOSUPPORT)
-				xlog(L_NOTICE, "address family %s not "
-						"supported by protocol %s",
-						family, proto);
-			else
-				xlog(L_ERROR, "unable to create %s %s socket: "
-				     "errno %d (%m)", family, proto, errno);
+			xlog(L_ERROR, "unable to create %s %s socket: "
+				"errno %d (%m)", family, proto, errno);
 			rc = errno;
 			goto error;
 		}
@@ -223,7 +181,7 @@ nfssvc_setfds(const struct addrinfo *hints, const char *node, const char *port)
 		}
 
 		snprintf(buf, sizeof(buf), "%d\n", sockfd); 
-		if (write(fd, buf, strlen(buf)) != (ssize_t)strlen(buf)) {
+		if (write(fd, buf, strlen(buf)) != strlen(buf)) {
 			/*
 			 * this error may be common on older kernels that don't
 			 * support IPv6, so turn into a debug message.
@@ -269,7 +227,7 @@ nfssvc_set_sockets(const int family, const unsigned int protobits,
 }
 
 void
-nfssvc_setvers(unsigned int ctlbits, int minorvers41)
+nfssvc_setvers(unsigned int ctlbits, int minorvers4)
 {
 	int fd, n, off;
 	char *ptr;
@@ -280,9 +238,11 @@ nfssvc_setvers(unsigned int ctlbits, int minorvers41)
 	if (fd < 0)
 		return;
 
-	if (minorvers41)
-		off += snprintf(ptr+off, sizeof(buf) - off, "%c4.1",
-				minorvers41 > 0 ? '+' : '-');
+	n = minorvers4 >= 0 ? minorvers4 : -minorvers4;
+	if (n >= NFSD_MINMINORVERS4 && n <= NFSD_MAXMINORVERS4)
+		    off += snprintf(ptr+off, sizeof(buf) - off, "%c4.%d ",
+				    minorvers4 > 0 ? '+' : '-',
+				    n);
 	for (n = NFSD_MINVERS; n <= NFSD_MAXVERS; n++) {
 		if (NFSCTL_VERISSET(ctlbits, n))
 		    off += snprintf(ptr+off, sizeof(buf) - off, "+%d ", n);
@@ -291,7 +251,7 @@ nfssvc_setvers(unsigned int ctlbits, int minorvers41)
 	}
 	xlog(D_GENERAL, "Writing version string to kernel: %s", buf);
 	snprintf(ptr+off, sizeof(buf) - off, "\n");
-	if (write(fd, buf, strlen(buf)) != (ssize_t)strlen(buf))
+	if (write(fd, buf, strlen(buf)) != strlen(buf))
 		xlog(L_ERROR, "Setting version failed: errno %d (%m)", errno);
 
 	close(fd);
@@ -317,7 +277,7 @@ nfssvc_threads(unsigned short port, const int nrservs)
 		snprintf(buf, sizeof(buf), "%d\n", nrservs);
 		n = write(fd, buf, strlen(buf));
 		close(fd);
-		if (n != (ssize_t)strlen(buf))
+		if (n != strlen(buf))
 			return -1;
 		else
 			return 0;

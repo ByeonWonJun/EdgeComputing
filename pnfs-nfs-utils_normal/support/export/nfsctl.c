@@ -66,7 +66,7 @@ str_tolower(char *s)
 static int
 cltsetup(struct nfsctl_client *cltarg, nfs_client *clp)
 {
-	int i, j;
+	int	i;
 
 	if (clp->m_type != MCL_FQDN) {
 		xlog(L_ERROR, "internal: can't export non-FQDN host");
@@ -76,19 +76,10 @@ cltsetup(struct nfsctl_client *cltarg, nfs_client *clp)
 	strncpy(cltarg->cl_ident, clp->m_hostname,
 		sizeof (cltarg->cl_ident) - 1);
 	str_tolower(cltarg->cl_ident);
+	cltarg->cl_naddr = clp->m_naddr;
+	for (i = 0; i < cltarg->cl_naddr && i < NFSCLNT_ADDRMAX; i++)
+		cltarg->cl_addrlist[i] = clp->m_addrlist[i];
 
-	j = 0;
-	for (i = 0; i < clp->m_naddr && i < NFSCLNT_ADDRMAX; i++) {
-		const struct sockaddr_in *sin = get_addrlist_in(clp, i);
-		if (sin->sin_family == AF_INET)
-			cltarg->cl_addrlist[j++] = sin->sin_addr;
-	}
-	if (j == 0) {
-		xlog(L_ERROR, "internal: no supported addresses in nfs_client");
-		return 0;
-	}
-
-	cltarg->cl_naddr = j;
 	return 1;
 }
 
@@ -109,7 +100,7 @@ expsetup(struct nfsctl_export *exparg, nfs_export *exp, int unexport)
 	str_tolower(exparg->ex_client);
 	exparg->ex_flags    = exp->m_export.e_flags;
 	exparg->ex_dev      = (!unexport && (exp->m_export.e_flags & NFSEXP_FSID)) ?
-			(__nfsd_dev_t)exp->m_export.e_fsid : stb.st_dev;
+				exp->m_export.e_fsid : stb.st_dev;
 	exparg->ex_ino      = stb.st_ino;
 	exparg->ex_anon_uid = exp->m_export.e_anonuid;
 	exparg->ex_anon_gid = exp->m_export.e_anongid;
