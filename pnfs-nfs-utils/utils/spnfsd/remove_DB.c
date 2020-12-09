@@ -32,7 +32,7 @@ int main(int argc, char *argv[]){
 
 	result=mysql_use_result(connect);
 
-	mysql_close(connect);
+	mysql_close(connect); //Close MySQL Server
 
 	printf("[+] Remove_DB End [+]\n\n");
 	
