@@ -1,8 +1,0 @@
-~$
-^examples/.*/source/.*
-bakefile.xml$
-.pyc$
-source/*
-build/*
-^bakeSetEnv.sh
-^.pydevproject
