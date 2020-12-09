@@ -11,7 +11,7 @@ int main(int argc, char *argv[]){
 	char *server = "192.168.163.163"; // mysql_server IP address
 	char *user = "root";	// mysql_server Account
 	char *password ="system"; // mysql_server Password
-	char *database = "tracking";
+	char *database = "tracking"; // use database
 	char input[100];
 
 	printf("[+] Send_DB Start [+]\n");
