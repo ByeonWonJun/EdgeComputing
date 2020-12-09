@@ -17,6 +17,7 @@ int main(int argc, char *argv[]){
 	printf("[+] Remove_DB Start [+]\n");
 	connect=mysql_init(NULL);
 
+	//Connect MySQL Server	//Create Session
 	if(!mysql_real_connect(connect, server, user, password, "tracking", 0, NULL, 0)){
 		fprintf(stderr, "%s\n", mysql_error(connect));
 		return ;
