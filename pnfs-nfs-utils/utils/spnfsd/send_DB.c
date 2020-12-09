@@ -12,7 +12,7 @@ int main(int argc, char *argv[]){
 	char *user = "root";	// mysql_server Account
 	char *password ="system"; // mysql_server Password
 	char *database = "tracking"; // use database
-	char input[100];
+	char input[100]; // Query
 
 	printf("[+] Send_DB Start [+]\n");
 	connect=mysql_init(NULL);
