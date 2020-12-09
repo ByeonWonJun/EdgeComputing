@@ -17,7 +17,8 @@ int main(int argc, char *argv[]){
 	printf("[+] Send_DB Start [+]\n");
 	connect=mysql_init(NULL);
 
-	if(!mysql_real_connect(connect, server, user, password, "tracking", 0, NULL, 0)){
+	//Connect MySQL Server
+	if(!mysql_real_connect(connect, server, user, password, "tracking", 0, NULL, 0)){ 
 		fprintf(stderr, "%s\n", mysql_error(connect));
 		return ;
 	}
