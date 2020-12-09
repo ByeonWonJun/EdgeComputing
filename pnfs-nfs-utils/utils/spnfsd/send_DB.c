@@ -26,7 +26,8 @@ int main(int argc, char *argv[]){
 	printf("DS_IP : %s\n", argv[2]);
 
 	sprintf(input, "insert into spnfs (name, DS_IP) VALUES ('%s', '%s')", argv[1], argv[2]);
-
+	
+	//send MySQL_Query
 	mysql_query(connect, input);
 
 	result=mysql_use_result(connect);
