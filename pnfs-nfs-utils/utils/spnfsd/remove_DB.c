@@ -10,7 +10,7 @@ int main(int argc, char *argv[]){
 	
 	char *server = "192.168.163.163"; //mysql_server IP address
 	char *user = "root";	// mysql_server Account
-	char *password ="system";
+	char *password ="system"; //mysql_server Password
 	char *database = "tracking";
 	char input[100];
 
