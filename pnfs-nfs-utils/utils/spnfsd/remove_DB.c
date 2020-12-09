@@ -26,7 +26,8 @@ int main(int argc, char *argv[]){
 	printf("DS_IP : %s\n", argv[2]);
 
 	sprintf(input, "delete from spnfs where name='%s' and DS_IP='%s'", argv[1], argv[2]);
-
+	
+	//Send MySQL_Query
 	mysql_query(connect, input);
 
 	result=mysql_use_result(connect);
