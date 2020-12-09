@@ -1,1 +1,2 @@
-NFS-Ganesha 사용목표
+NFS-Ganesha 사용단계
+1. 
