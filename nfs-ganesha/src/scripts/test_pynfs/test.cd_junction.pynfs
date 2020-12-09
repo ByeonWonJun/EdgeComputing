@@ -1,9 +1,0 @@
-#!/bin/ksh 
-
-../pynfs/nfs4client.py -u pinatubo1 << EOF
-
-cd /prot/test/root
-
-quit
-
-EOF
