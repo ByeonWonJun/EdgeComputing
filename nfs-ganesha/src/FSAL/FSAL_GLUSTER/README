@@ -1,0 +1,26 @@
+###################################################
+# Compiling nfs-ganesha with FSAL_GLUSTER support:
+#-----------------------------------------------
+#
+#1. You need the libgfapi.so installed.
+#2. You also need glfs.h, glfs-handles.h files
+#   which are exported and available for use on
+#   installing a standard glusterfs src/bin rpms.
+#
+#-----------------------------------------------
+# Exporting GLUSTERFS volume:
+#-----------------------------------------------
+#
+# To export a GLUSTERFS volume, make sure
+# * the volume is online and healthy.
+# * gluster-nfs and kernel-nfs are disbaled.
+# * Create a sample .conf file with the Gluster
+#   volume related info. Sample config file is
+#   located at 'src/config_samples/gluster.conf'
+#
+#   For extensive list of NFS options available,
+#   please refer to 'src/config_samples/config.txt'
+# * Execute the command -
+#   'ganesha.nfsd -f /path/to/config_file -L /path/to/log/file -N debug_level -d'
+###################################################
+

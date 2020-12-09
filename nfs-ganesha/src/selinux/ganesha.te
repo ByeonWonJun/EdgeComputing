@@ -1,0 +1,327 @@
+policy_module(ganesha, 1.0.0)
+
+require {
+	type glusterd_t;
+
+	type var_lib_nfs_t;
+	type apm_bios_t;
+	type autofs_device_t;
+	type bpf_t;
+	type clock_device_t;
+	type configfs_t;
+	type cpu_device_t;
+	type debugfs_t;
+	type default_t;
+	type device_t;
+	type devpts_t;
+	type dri_device_t;
+	type event_device_t;
+	type fixed_disk_device_t;
+	type framebuf_device_t;
+	type fs_t;
+	type gluster_port_t;
+	type glusterd_brick_t;
+	type hugetlbfs_t;
+	type initctl_t;
+	type kmsg_device_t;
+	type kvm_device_t;
+	type lvm_control_t;
+	type memory_device_t;
+	type mouse_device_t;
+	type netcontrol_device_t;
+	type nvram_device_t;
+	type portmap_port_t;
+	type proc_kcore_t;
+	type proc_t;
+	type pstore_t;
+	type ptmx_t;
+	type removable_device_t;
+	type rpc_pipefs_t;
+	type scsi_generic_device_t;
+	type sound_device_t;
+	type sysfs_t;
+	type tmpfs_t;
+	type usb_device_t;
+	type usbmon_device_t;
+	type virtio_device_t;
+	type watchdog_device_t;
+	type wireless_device_t;
+	type xserver_misc_device_t;
+	type rpcbind_t;
+
+	type cgroup_t;
+	type usr_t;
+
+	class dbus send_msg;
+}
+
+# ceph_*_t types are only "available" if the ceph-selinux package is
+# installed. But we don't want to require ceph-selinux to be installed
+# when Ceph is not being used. In order to compile the policy though
+# these types must be declared/defined, which creates (redundant) roles
+# in selinux. AFAICT though this doesn't appear to hurt anything.
+type ceph_t;
+type ceph_log_t;
+type ceph_var_lib_t;
+type ceph_var_run_t;
+
+# Note: gluster*_t types are still, at the time of this writing, all
+# defined in the Fedora/CentOS/RHEL base selinux policy (because
+# gluster never got their act together and rolled their own -selinux
+# package.
+
+########################################
+#
+# Declarations
+#
+
+## <desc>
+## <p>
+## Allow ganesha to read/write fuse files
+## </p>
+## </desc>
+gen_tunable(ganesha_use_fusefs, false)
+
+type ganesha_t;
+type ganesha_exec_t;
+init_daemon_domain(ganesha_t, ganesha_exec_t)
+
+type ganesha_var_log_t;
+logging_log_file(ganesha_var_log_t)
+
+type ganesha_var_run_t;
+files_pid_file(ganesha_var_run_t)
+
+type ganesha_tmp_t;
+files_tmp_file(ganesha_tmp_t)
+
+type ganesha_unit_file_t;
+systemd_unit_file(ganesha_unit_file_t)
+
+########################################
+#
+# ganesha local policy
+#
+dontaudit ganesha_t self:capability net_admin;
+
+allow ganesha_t self:capability { dac_read_search dac_override fowner setgid setuid };
+allow ganesha_t self:capability2 block_suspend;
+allow ganesha_t self:process { setcap setrlimit };
+allow ganesha_t self:fifo_file rw_fifo_file_perms;
+allow ganesha_t self:unix_stream_socket create_stream_socket_perms;
+allow ganesha_t self:tcp_socket { accept listen };
+
+manage_dirs_pattern(ganesha_t, ganesha_var_run_t, ganesha_var_run_t)
+manage_files_pattern(ganesha_t, ganesha_var_run_t, ganesha_var_run_t)
+manage_lnk_files_pattern(ganesha_t, ganesha_var_run_t, ganesha_var_run_t)
+files_pid_filetrans(ganesha_t, ganesha_var_run_t, { dir file lnk_file })
+
+manage_dirs_pattern(ganesha_t, ganesha_var_log_t, ganesha_var_log_t)
+manage_files_pattern(ganesha_t, ganesha_var_log_t, ganesha_var_log_t)
+logging_log_filetrans(ganesha_t, ganesha_var_log_t, { file dir })
+
+manage_dirs_pattern(ganesha_t, ganesha_tmp_t, ganesha_tmp_t)
+manage_files_pattern(ganesha_t, ganesha_tmp_t, ganesha_tmp_t)
+files_tmp_filetrans(ganesha_t, ganesha_tmp_t, { file dir })
+
+kernel_read_system_state(ganesha_t)
+kernel_search_network_sysctl(ganesha_t)
+kernel_read_net_sysctls(ganesha_t)
+
+auth_use_nsswitch(ganesha_t)
+
+corenet_tcp_bind_nfs_port(ganesha_t)
+corenet_tcp_connect_generic_port(ganesha_t)
+corenet_tcp_connect_gluster_port(ganesha_t)
+corenet_udp_bind_dey_keyneg_port(ganesha_t)
+corenet_tcp_bind_dey_keyneg_port(ganesha_t)
+corenet_udp_bind_nfs_port(ganesha_t)
+corenet_udp_bind_all_rpc_ports(ganesha_t)
+corenet_tcp_bind_all_rpc_ports(ganesha_t)
+corenet_tcp_bind_mountd_port(ganesha_t)
+corenet_udp_bind_mountd_port(ganesha_t)
+corenet_tcp_connect_virt_migration_port(ganesha_t)
+corenet_tcp_connect_all_rpc_ports(ganesha_t)
+corenet_tcp_connect_portmap_port(ganesha_t)
+
+dev_rw_infiniband_dev(ganesha_t)
+dev_read_gpfs(ganesha_t)
+dev_read_rand(ganesha_t)
+
+logging_send_syslog_msg(ganesha_t)
+
+sysnet_dns_name_resolve(ganesha_t)
+
+optional_policy(`
+	dbus_system_bus_client(ganesha_t)
+	dbus_connect_system_bus(ganesha_t)
+    unconfined_dbus_chat(ganesha_t)
+')
+
+optional_policy(`
+    glusterd_read_conf(ganesha_t)
+    glusterd_read_lib_files(ganesha_t)
+    glusterd_manage_pid(ganesha_t)
+')
+
+optional_policy(`
+    kerberos_read_keytab(ganesha_t)
+')
+
+optional_policy(`
+	rpc_manage_nfs_state_data_dir(ganesha_t)
+    rpc_read_nfs_state_data(ganesha_t)
+	rpcbind_stream_connect(ganesha_t)
+')
+
+tunable_policy(`ganesha_use_fusefs',`
+    fs_manage_fusefs_dirs(ganesha_t)
+    fs_manage_fusefs_files(ganesha_t)
+    fs_read_fusefs_symlinks(ganesha_t)
+    fs_getattr_fusefs(ganesha_t)
+    fs_search_fusefs(ganesha_t)
+')
+
+########################################
+#
+# ganesha local policy rhbz#1796160, FSAL_RGW
+# rhbz#1829804
+#
+
+#============= ganesha_t ==============
+allow ganesha_t ceph_log_t:dir { add_name search write };
+allow ganesha_t ceph_log_t:file { create open };
+allow ganesha_t ceph_var_lib_t:dir search;
+allow ganesha_t ceph_var_lib_t:file { getattr open read };
+allow ganesha_t ceph_var_run_t:dir { add_name write };
+allow ganesha_t ceph_var_run_t:sock_file create;
+allow ganesha_t cgroup_t:dir search;
+allow ganesha_t cgroup_t:file { getattr open read };
+
+#!!!! This avc can be allowed using the boolean 'domain_can_mmap_files'
+allow ganesha_t usr_t:file map;
+
+#============= init_t ==============
+allow init_t var_lib_nfs_t:dir { create setattr };
+
+
+########################################
+#
+# ganesha local policy rhbz#1821612, FSAL_RGW
+#
+
+#!!!! This avc can be allowed using the boolean 'daemons_enable_cluster_mode'
+allow ganesha_t ceph_t:unix_stream_socket connectto;
+
+
+########################################
+#
+# ganesha local policy rhbz#1788541, FSAL_VFS
+# rhbz#1829804
+#
+
+#============= ganesha_t ==============
+dontaudit ganesha_t apm_bios_t:chr_file getattr;
+dontaudit ganesha_t autofs_device_t:chr_file getattr;
+dontaudit ganesha_t bpf_t:dir getattr;
+dontaudit ganesha_t bpf_t:filesystem getattr;
+dontaudit ganesha_t cgroup_t:dir getattr;
+dontaudit ganesha_t cgroup_t:filesystem getattr;
+dontaudit ganesha_t clock_device_t:chr_file getattr;
+dontaudit ganesha_t configfs_t:dir getattr;
+dontaudit ganesha_t configfs_t:filesystem getattr;
+dontaudit ganesha_t cpu_device_t:chr_file getattr;
+dontaudit ganesha_t debugfs_t:filesystem getattr;
+dontaudit ganesha_t device_t:chr_file getattr;
+dontaudit ganesha_t device_t:filesystem getattr;
+dontaudit ganesha_t devpts_t:filesystem getattr;
+dontaudit ganesha_t dri_device_t:chr_file getattr;
+dontaudit ganesha_t event_device_t:chr_file getattr;
+allow ganesha_t fixed_disk_device_t:blk_file { getattr ioctl open read };
+dontaudit ganesha_t fixed_disk_device_t:chr_file getattr;
+dontaudit ganesha_t framebuf_device_t:chr_file getattr;
+dontaudit ganesha_t fs_t:filesystem getattr;
+allow ganesha_t hugetlbfs_t:dir { getattr open read };
+dontaudit ganesha_t hugetlbfs_t:filesystem getattr;
+dontaudit ganesha_t initctl_t:fifo_file getattr;
+
+#!!!! This avc can be allowed using the boolean 'domain_can_write_kmsg'
+dontaudit ganesha_t kmsg_device_t:chr_file getattr;
+dontaudit ganesha_t kvm_device_t:chr_file getattr;
+dontaudit ganesha_t lvm_control_t:chr_file getattr;
+dontaudit ganesha_t memory_device_t:chr_file getattr;
+dontaudit ganesha_t mouse_device_t:chr_file getattr;
+dontaudit ganesha_t netcontrol_device_t:chr_file getattr;
+dontaudit ganesha_t nvram_device_t:chr_file getattr;
+dontaudit ganesha_t proc_kcore_t:file getattr;
+dontaudit ganesha_t proc_t:filesystem getattr;
+dontaudit ganesha_t pstore_t:dir getattr;
+dontaudit ganesha_t pstore_t:filesystem getattr;
+dontaudit ganesha_t ptmx_t:chr_file getattr;
+dontaudit ganesha_t removable_device_t:blk_file getattr;
+dontaudit ganesha_t rpc_pipefs_t:dir getattr;
+dontaudit ganesha_t rpc_pipefs_t:filesystem getattr;
+dontaudit ganesha_t scsi_generic_device_t:chr_file getattr;
+dontaudit ganesha_t sound_device_t:chr_file getattr;
+allow ganesha_t sysfs_t:dir read;
+allow ganesha_t sysfs_t:file { getattr open read };
+dontaudit ganesha_t sysfs_t:filesystem getattr;
+allow ganesha_t sysfs_t:lnk_file read;
+allow ganesha_t tmpfs_t:dir read;
+dontaudit ganesha_t tmpfs_t:filesystem getattr;
+dontaudit ganesha_t usb_device_t:chr_file getattr;
+dontaudit ganesha_t usbmon_device_t:chr_file getattr;
+dontaudit ganesha_t virtio_device_t:chr_file getattr;
+dontaudit ganesha_t watchdog_device_t:chr_file getattr;
+dontaudit ganesha_t wireless_device_t:chr_file getattr;
+dontaudit ganesha_t xserver_misc_device_t:chr_file getattr;
+
+#============= init_t ==============
+allow init_t ganesha_var_log_t:dir { read setattr };
+allow init_t ganesha_var_log_t:file setattr;
+allow init_t var_lib_nfs_t:dir create;
+
+#============= rpcbind_t ==============
+
+#!!!! This avc can be allowed using the boolean 'nis_enabled'
+allow rpcbind_t unreserved_port_t:udp_socket name_bind;
+
+########################################
+#
+# ganesha local policy rhbz#1816501, rhbz#1822500, rhbz#1826101,
+# rhbz#1826627
+
+allow glusterd_t ganesha_unit_file_t:service { start status stop };
+allow glusterd_t ganesha_t:dbus send_msg;
+allow ganesha_t glusterd_t:dbus send_msg;
+
+########################################
+#
+# ganesha local policy rhbz#1857170
+
+allow ganesha_t portmap_port_t:tcp_socket name_connect;
+
+########################################
+#
+# ganesha local policy, nfs-ganesha-2.8.4
+#
+
+allow ganesha_t default_t:dir { add_name getattr open read write remove_name search };
+allow ganesha_t default_t:file { create getattr open read write unlink };
+allow ganesha_t self:capability { fowner setgid setuid };
+
+# if you want to export old gluster brick dirs directly, e.g. because
+# maybe you're no longer using gluster. selinux knows about gluster brick
+# volumes in /bricks/...
+# allow ganesha_t glusterd_brick_t:dir { add_name getattr open read write remove_name search };
+# allow ganesha_t glusterd_brick_t:file { create getattr open read write unlink };
+
+########################################
+#
+# ganesha local policy rhbz#1855350
+
+ifdef(`ceph_read_lib_files',`
+       optional_policy(`
+               ceph_read_lib_files(ganesha_t)
+       ')
+')
