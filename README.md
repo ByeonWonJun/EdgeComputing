@@ -6,6 +6,6 @@ EdgeXFoundry source code and database table
 
 // pNFS(spNFS) - Mysql
 
-// Network Simulation ns-3
+// Network Simulation ns-3 -> Can't save module in github. it's very large capacity.
 
 // NFS-Ganesha (for pNFS)
