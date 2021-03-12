@@ -10,53 +10,32 @@ $(function () {
 
     echart_map();
 
-
+//원형 그래프
     function ceshis1() {
         var myChart = echarts.init(document.getElementById('ceshi'));
 
-        var ydata = [{
-            name: '白菜',
-            value: 18
-        },
+        var ydata = [
             {
-                name: '西红柿',
+                 name: '심장 비대',
+                 value: 18
+            },
+            {
+                name: '부정맥',
                 value: 16
             },
             {
-                name: '茄子',
+                name: '심장 12',
                 value: 15
             },
             {
-                name: '辣椒',
+                name: '심장 345',
                 value: 14
             },
-            {
-                name: '大蒜',
-                value: 10
-            },
-            {
-                name: '莴笋',
-                value: 7.9
-            },
-            {
-                name: '洋芋',
-                value: 6.7
-            },
-            {
-                name: '藕',
-                value: 6
-            },
-            {
-                name: '豌豆',
-                value: 4.5
-            },
-            {
-                name: '玉米',
-                value: 3
-            }
+
+            
         ];
-        var color = ["#8d7fec", "#5085f2", "#e75fc3", "#f87be2", "#f2719a", "#fca4bb", "#f59a8f", "#fdb301", "#57e7ec", "#cf9ef1"]
-        var xdata = ['白菜', "西红柿", "茄子", "辣椒", '大蒜', '莴笋', '洋芋', '藕', '豌豆', '玉米'];
+        var color = ["#8d7fec", "#5085f2", "#e75fc3", "#f87be2"]
+        var xdata = ['심장 비대', "부정맥", "심장 12", "심장 345"];
 
 
         option = {
@@ -91,12 +70,12 @@ $(function () {
             },
             series: [{
                 type: 'pie',
-                clockwise: false, //饼图的扇区是否是顺时针排布
-                minAngle: 2, //最小的扇区角度（0 ~ 360）
+                clockwise: false, //시계 방향으로 나열 여부
+                minAngle: 2, //가장 작은 섹터 각도（0 ~ 360）
                 radius: ["20%", "60%"],
                 center: ["30%", "45%"],
                 avoidLabelOverlap: false,
-                itemStyle: { //图形样式
+                itemStyle: { //도형 양식
                     normal: {
                         borderColor: '#ffffff',
                         borderWidth: 1,
@@ -170,14 +149,14 @@ $(function () {
 
         setInterval(function () {
             var dataLen = option.series[0].data.length;
-            // 取消之前高亮的图形
+            // 이전 하이라이팅 삭제
             myChart.dispatchAction({
                 type: 'downplay',
                 seriesIndex: 0,
                 dataIndex: myChart.currentIndex
             });
             myChart.currentIndex = (myChart.currentIndex + 1) % dataLen;
-            // 高亮当前图形
+            // 현재 그래픽 강조
             myChart.dispatchAction({
                 type: 'highlight',
                 seriesIndex: 0,
@@ -185,7 +164,7 @@ $(function () {
             });
         }, 1000);
 
-        // 使用刚指定的配置项和数据显示图表。
+        // 방금 지정한 프로필과 데이터를 사용하여 그래프 표시
         /*myChart.setOption(option);*/
         window.addEventListener("resize",function(){
             myChart.resize();

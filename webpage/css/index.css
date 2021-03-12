@@ -2,7 +2,7 @@
     -webkit-box-sizing: border-box;
     -moz-box-sizing: border-box;
     box-sizing: border-box}
-*,body{padding:0px;	margin:0px;color: #222;font-family: "微软雅黑";}
+*,body{padding:0px;	margin:0px;color: #222;font-family: "";}
 html,body{
     background: url("../images/bj.jpg") no-repeat;
     background-size: cover;
@@ -21,9 +21,9 @@ html,body{
 ul,ol{
     list-style: none;
 }
-/*谷哥滚动条样式*/
 
-::-webkit-scrollbar {width:5px;height:5px;position:absolute}
+
+::-webkit-scrollbar {width:10px;height:5px;position:absolute}
 ::-webkit-scrollbar-thumb {background-color:#5bc0de}
 ::-webkit-scrollbar-track {background-color:#ddd}
 
@@ -38,13 +38,13 @@ ul,ol{
     background-size: cover;
     position: relative;*/
 }
-/*头部*/
+/*헤드*/
 .header{
     height: 1.2rem;
     width: 100%;
     /*background:red;*/
 }
-/*头部左边*/
+/*헤드 왼쪽*/
 .header .header-left{
     float: left;
     width: 35%;
@@ -56,7 +56,7 @@ ul,ol{
     font-size: .2rem;
     /*border: 1px solid gold;*/
 }
-/*头部中间*/
+/*헤드 중앙*/
 .header .header-cen{
     float: left;
     width: 30%;
@@ -68,23 +68,23 @@ ul,ol{
     line-height: 1.2rem;
 }
 .header .header-cen h1{
-    font-size: .4rem;
+    font-size: .7rem;
     color: #ffffff;
     letter-spacing:0.2rem;
     text-shadow: 0 0 .3rem #00d8ff;
 }
-/*头部右边*/
+/*헤드 오른쪽*/
 .header .header-right{
     float: right;
     width: 35%;
     height: 1.2rem;
     /*border: 1px solid purple;*/
 }
-/*中间*/
+/*중앙*/
 .content{
     padding: .2rem .1rem 0 .1rem;
 }
-/*中间左边*/
+/*가운데 프레임이 왼쪽으로 움직임*/
 .content .content-left{
     width: 25%;
     padding: .1rem;
@@ -118,16 +118,16 @@ ul,ol{
 }
 
 .list p{
-    font-size: .18rem;
+    font-size: .3rem;
     color: #029698;
     padding: 0 .3rem;
 }
 .list li{
     float: left;
-    font-size: .2rem;
+    font-size: .3rem;
     color: #ffffff;
     width: 50%;
-    height: .4rem;
+    height: 1rem;
     line-height: .4rem;
     padding: .2rem;
 }
@@ -138,6 +138,7 @@ ul,ol{
     margin-bottom: .2rem;
 }
 .content .content-left .left-bottom{
+    margin-top: 70%;
     width: 100%;
     height: 3.2rem;
    /* border: 1px solid gold;*/
@@ -146,9 +147,9 @@ ul,ol{
 
 
 
-/*中间*/
+/*중앙*/
 .content .content-center{
-    width: 50%;
+    width: 45%;
     padding: .1rem .2rem .1rem .2rem;
     /*border: 1px solid purple;*/
 }
@@ -156,8 +157,8 @@ ul,ol{
     width: 100%;
     height: 6.5rem;
     /*border: 1px solid red;*/
-    background: url("../images/a.png") no-repeat;
-    background-size: 100% 100%;
+    border: 2px solid #55bcd4;
+    
     box-sizing: border-box;
     margin-bottom: .3rem;
     position: relative;
@@ -209,7 +210,7 @@ ul,ol{
     width: 100%;
     height: 3.4rem;
     padding: .1rem;
-    border: 1px solid #55bcd4;
+    border: 2px solid #55bcd4;
     box-sizing: border-box;
 }
 .content .content-center .center-bottom .bottom-left{
@@ -224,15 +225,15 @@ ul,ol{
 }
 
 
-/*中间右边*/
+/*중앙 오른쪽*/
 .content .content-right{
-    width: 25%;
+    width: 30%;
     padding: .1rem;
 }
 .content .content-right .right-top{
     width: 100%;
-    height: 3.2rem;
-    border: 1px solid #55bcd4;
+    height: 6.5rem;
+    border: 2px solid #55bcd4;
     margin-bottom: .2rem;
 }
 #tab_header{
@@ -245,7 +246,7 @@ ul,ol{
 }
 #tab_header li{
     float: left;
-    width: 50%;
+    width: 33%;
     color: #ffffff;
     text-align: center;
     line-height: .4rem;
@@ -296,7 +297,7 @@ ul,ol{
     width: 15%;
     height: .8rem;
     float: left;
-    border: 1px solid #55bcd4;
+    border: 2px solid #55bcd4;
     text-align: center;
     padding: 0 !important;
     margin-left: 0.07rem;
@@ -385,11 +386,12 @@ ul,ol{
     /*margin: 15px 10px 10px 10px;*/
     /*padding: 20px;*/
     text-align: center;
-    font-size: 0.14rem;
+    font-size: 0.2rem;
     font-weight: 600;
     color: #61d2f7;
     text-align: center;
-    margin-bottom: .1rem;
+    margin-bottom: .3rem;
+  
 }
 #FontScroll{
     width: 100%;
