@@ -70,7 +70,7 @@ $(function () {
             },
             series: [{
                 type: 'pie',
-                clockwise: false, //시계 방향으로 나열 여부
+                clockwise: true, //시계 방향으로 나열 여부
                 minAngle: 2, //가장 작은 섹터 각도（0 ~ 360）
                 radius: ["20%", "60%"],
                 center: ["30%", "45%"],
@@ -420,7 +420,7 @@ $(function () {
                 transitionDuration: 0,
                 extraCssText: 'z-index:100',
                 formatter: function(params, ticket, callback) {
-                    //根据业务自己拓展要显示的内容
+                    //업무에 따라 표시할 내용을 스스로 확대.
                     var res = "";
                     var name = params.name;
                     var value = params.value[params.seriesIndex + 1];
@@ -429,7 +429,7 @@ $(function () {
                 }
             },
             /*backgroundColor:"#013954",*/
-            visualMap: { //图例值控制
+            visualMap: { //그래프 값 제어
                 min: 0,
                 max: 1,
                 calculable: true,
@@ -476,6 +476,7 @@ $(function () {
                 trigger: 'axis'
             },
             toolbox: {
+                backgroundcolor:'#ffffff',
                 show: true,
                 feature: {
                     mark: {
@@ -483,7 +484,7 @@ $(function () {
                     },
                     dataView: {
                         show: true,
-                        readOnly: false
+                        readOnly: true
                     },
                     magicType: {
                         show: true,
@@ -498,29 +499,29 @@ $(function () {
                 }
             },
             grid: {
-                top: 'middle',
                 left: '3%',
                 right: '4%',
                 bottom: '3%',
-                top: '10%',
+                top: '30%',
                 containLabel: true
             },
             legend: {
-                data: ['产量', '种植面积', '同比增加', '平均产量'],
+                top:'12%',
+                data: ['심장비대', '부정맥', '심장12', '심장345'],
                 textStyle: {
-                    color: "#fff"
+                    color: "#ff"
                 }
 
             },
             xAxis: [{
                 type: 'category',
-                data: ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月',
-                    '12月'
+                data: ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월',
+                    '12월'
                 ],
                 axisLabel: {
                     show: true,
                     textStyle: {
-                        color: "#ebf8ac" //X轴文字颜色
+                        color: "#ebf8ac" //X축 글자 색
                     }
                 },
                 axisLine: {
@@ -531,11 +532,11 @@ $(function () {
             }],
             yAxis: [{
                 type: 'value',
-                name: '产量',
+                name: '수치',
                 axisLabel: {
-                    formatter: '{value} 顿',
+                    formatter: '{value} %',
                     textStyle: {
-                        color: "#2EC7C9" //X轴文字颜色
+                        color: "#2EC7C9" // x축 색상
                     }
                 },
                 axisLine: {
@@ -546,19 +547,25 @@ $(function () {
             },
                 {
                     type: 'value',
-                    name: '种植面积',
+                    name: '심장',
                     axisLabel: {
-                        formatter: '{value} 亩',
+                        formatter: '{value} %',
                         textStyle: {
-                            color: "#2EC7C9" //X轴文字颜色
+                            color: "#2EC7C9" //x축 색상
                         }
-                    }
-                }
+                    },
+                    axisLine: {
+                        lineStyle: {
+                            color: '#01FCE3'
+                        }
+                    },
+                },
+                
             ],
             series: [
 
                 {
-                    name: '产量',
+                    name: '심장비대',
                     type: 'bar',
                     itemStyle: {
                         normal: {
@@ -577,7 +584,7 @@ $(function () {
                     data: [2.0, 4.9, 7.0, 23.2, 25.6, 76.7, 135.6, 162.2, 32.6, 20.0, 6.4, 3.3]
                 },
                 {
-                    name: '种植面积',
+                    name: '부정맥',
                     type: 'bar',
                     itemStyle: {
                         normal: {
@@ -596,7 +603,7 @@ $(function () {
                     data: [2.6, 5.9, 9.0, 26.4, 28.7, 70.7, 175.6, 182.2, 48.7, 18.8, 6.0, 2.3]
                 },
                 {
-                    name: '同比增加',
+                    name: '심장12',
                     type: 'line',
                     yAxisIndex: 1,
                     data: [2.0, 2.2, 3.3, 4.5, 6.3, 10.2, 20.3, 23.4, 23.0, 16.5, 12.0, 6.2],
@@ -608,17 +615,17 @@ $(function () {
 
                                 colorStops: [{
                                     offset: 0,
-                                    color: '#AAF487' // 0% 处的颜色
+                                    color: '#AAF487' // 0% 
                                 },
                                     {
                                         offset: 0.4,
-                                        color: '#47D8BE' // 100% 处的颜色
+                                        color: '#47D8BE' // 100% 
                                     }, {
                                         offset: 1,
-                                        color: '#47D8BE' // 100% 处的颜色
+                                        color: '#47D8BE' // 100% 
                                     }
                                 ],
-                                globalCoord: false // 缺省为 false
+                                globalCoord: false //  false
                             },
                             shadowColor: 'rgba(71,216,190, 0.5)',
                             shadowBlur: 10,
@@ -637,7 +644,7 @@ $(function () {
                     smooth: true,
                 },
                 {
-                    name: '平均产量',
+                    name: '심장345',
                     type: 'line',
                     yAxisIndex: 1,
                     data: [4.0, 3.2, 2.3, 5.5, 4.3, 11.2, 15.3, 22.4, 21.0, 13.5, 12.0, 10.2],
@@ -649,17 +656,17 @@ $(function () {
 
                                 colorStops: [{
                                     offset: 0,
-                                    color: '#F8B854' // 0% 处的颜色
+                                    color: '#F8B854' // 0% 
                                 },
                                     {
                                         offset: 0.4,
-                                        color: '#DE801C' // 100% 处的颜色
+                                        color: '#DE801C' // 100% 
                                     }, {
                                         offset: 1,
-                                        color: '#DE801C' // 100% 处的颜色
+                                        color: '#DE801C' // 100% 
                                     }
                                 ],
-                                globalCoord: false // 缺省为 false
+                                globalCoord: false //  false
                             },
                             shadowColor: 'rgba(71,216,190, 0.5)',
                             shadowBlur: 10,
@@ -689,14 +696,16 @@ $(function () {
     function ceshi3() {
         var myChart = echarts.init($("#ceshi3")[0]);
         /**
-         * 图标所需数据
+         * 아이콘에 필요한 데이터
          */
+        
         var data = {
+            
             value: 20.2,
             text: '-',
             color: '#4ac7f5',
-            xAxis: ['批发'],
-            values: ['76'],
+            xAxis: ['건강 1'],
+            values: ['80'],
         }
 
         var seriesData = []
@@ -705,11 +714,11 @@ $(function () {
             titleData.push({
                 text: data.xAxis[index],
                 left: 50 * (index + 1) - .5 + '%',
-                top: '60%',
+                top: '55%',
 
                 textAlign: 'center',
                 textStyle: {
-                    fontSize: '12',
+                    fontSize: '17',
                     color: '#ffffff',
                     fontWeight: '400',
                 },
@@ -741,7 +750,7 @@ $(function () {
                 },
                     {
                         value: 100 - item,
-                        name: '占位',
+                        name: '범위',
                         tooltip: {
                             show: false
                         },
@@ -786,8 +795,8 @@ $(function () {
         var data = {
             value: 20.2,
             text: '-',
-            color: '#25f3e6',
-            xAxis: ['批发'],
+            color: '#F06161',
+            xAxis: ['건강2'],
             values: ['46'],
         }
 
@@ -797,11 +806,11 @@ $(function () {
             titleData.push({
                 text: data.xAxis[index],
                 left: 50 * (index + 1) - .5 + '%',
-                top: '60%',
+                top: '55%',
 
                 textAlign: 'center',
                 textStyle: {
-                    fontSize: '12',
+                    fontSize: '17',
                     color: '#ffffff',
                     fontWeight: '400',
                 },
@@ -832,7 +841,7 @@ $(function () {
                 },
                     {
                         value: 100 - item,
-                        name: '占位',
+                        name: '범위',
                         tooltip: {
                             show: false
                         },
@@ -871,14 +880,12 @@ $(function () {
     }
     function ceshi5() {
         var myChart = echarts.init($("#ceshi5")[0]);
-        /**
-         * 图标所需数据
-         */
+
         var data = {
             value: 20.2,
             text: '-',
             color: '#ffff43',
-            xAxis: ['批发'],
+            xAxis: ['건강 3'],
             values: ['76'],
         }
 
@@ -888,11 +895,11 @@ $(function () {
             titleData.push({
                 text: data.xAxis[index],
                 left: 50 * (index + 1) - .5 + '%',
-                top: '60%',
+                top: '55%',
 
                 textAlign: 'center',
                 textStyle: {
-                    fontSize: '12',
+                    fontSize: '17',
                     color: '#ffffff',
                     fontWeight: '400',
                 },

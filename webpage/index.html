@@ -8,8 +8,8 @@
     <script>
         $(function () {
             $('.myscroll').myScroll({
-                speed: 60, //数值越大，速度越慢
-                rowHeight: 38 //li的高度
+                speed: 40, //높을수록 느림 
+                rowHeight: 80 //li높이
             });
         })
 
@@ -43,19 +43,25 @@
             <!--왼쪽 위-->
             <div class="left-top">
                 <div class="title">
-                    <span>사용자 ID 입력 표시 창</span>
+                    
+                    <input type="text" id="name">
+                    <button onclick="name()" style="background-color: #2EC7C9; color:black">확인</button>
                 </div>
                 <div class="list">
                     <p>사용자 ID 표시</p>
                     <ul>
                         <li>사용자 이름 : </li>
                         <li>이름</li>
+
                         <li>나이 : </li>
                         <li>나이</li>
+
                         <li>성별 : </li>
                         <li>성별</li>
+
                         <li>주민번호 : </li>
-                        <li>주민번호 앞 7자리</li>
+                        <li>주민번호 앞 6자리</li>
+
                         <li>주소 : </li>
                         <li>집 주소</li>
                     </ul>
@@ -65,7 +71,7 @@
             <!--왼쪽 아래(그래프등)-->
             <div class="left-bottom">
                 <div class="title">
-                    <span>내용 2</span>
+                    <span>검사 횟수</span>
                 </div>
                 <div class="allnav" id="ceshi"></div>
             </div>
@@ -86,12 +92,91 @@
             </div>
             <!--아래-->
             <div class="center-bottom">
-                <div class="bottom-left fl">
-                    <div class="allnav" id="ceshi6"></div>
+
+                <div class="echart wenzi">
+                    <div class="gun">
+                        <span>이동경로</span>
+                        <span>위도</span>
+                        <span>경도</span>
+                    </div>
+                    <div id="FontScroll" class="myscroll">
+                        <ul>
+                            <li>
+                                <div class="fontInner clearfix">
+                                    <span>
+                                        <b>1.예시</b>
+                                    </span>
+                                    <span>12.34567</span>
+                                    <span>12.34567</span>
+                                </div>
+                            </li>
+                            <li>
+                                <div class="fontInner clearfix">
+                                    <span>
+                                        <b>2.예시</b>
+                                    </span>
+                                    <span>23.45678</span>
+                                    <span>23.45678</span>
+                                </div>
+                            </li>
+                            <li>
+                                <div class="fontInner clearfix">
+                                    <span>
+                                        <b>3.예시</b>
+                                    </span>
+                                    <span>34.56789</span>
+                                    <span>34.56789</span>
+                                </div>
+                            </li>
+                            <li>
+                                <div class="fontInner clearfix">
+                                    <span>
+                                        <b>4.예시</b>
+                                    </span>
+                                    <span>13.45678</span>
+                                    <span>13.45678</span>
+                                </div>
+                            </li>
+                            <li>
+                                <div class="fontInner clearfix">
+                                    <span>
+                                        <b>5.예시</b>
+                                    </span>
+                                    <span>13.56789</span>
+                                    <span>13.56789</span>
+                                </div>
+                            </li>
+                            <li>
+                                <div class="fontInner clearfix">
+                                    <span>
+                                        <b>6.예시</b>
+                                    </span>
+                                    <span>14.56789</span>
+                                    <span>14.56789</span>
+                                </div>
+                            </li>
+                            <li>
+                                <div class="fontInner clearfix">
+                                    <span>
+                                        <b>7.예시</b>
+                                    </span>
+                                    <span>24.56789</span>
+                                    <span>24.56789</span>
+                                </div>
+                            </li>
+                            <li>
+                                <div class="fontInner clearfix">
+                                    <span>
+                                        <b>8.예시</b>
+                                    </span>
+                                    <span>34.56789</span>
+                                    <span>34.56789</span>
+                                </div>
+                            </li>        
+                        </ul>
+                    </div>
                 </div>
-                <div class="bottom-right fr">
-                    <div class="allnav" id="ceshi7" style="width: 100%;height: 100%;"></div>
-                </div>
+                
             </div>
         </div>
         <!--오른쪽-->
@@ -102,108 +187,44 @@
                 <div id="tab_header">
                     <ul>
                         <li class="selected">당일</li>
-                        <li>일주일</li>
-                        <li>한달</li>
+                        <li >일주일</li>
+                        <li >한달</li>
                     </ul>
                 </div>
                 <!--내용-->
                 <div id="tab_content">
                     
+                    <div class="dom allnav" id="ceshi2" style="display: block">
+
+                        <!-- <div class="allnav" id="ceshi2"></div> -->
+               
+                    </div>
+
+                    <div class="dom allnav" id="ceshi2" style="display: none">
+
+                        <!-- <div class="allnav" id="ceshi2"></div> -->
+               
+                    </div>
+
+
                    
+
                 </div>
+                
                 <!--선택항목 고르기-->
             </div>
             <!--오른쪽 아래-->
             <div class="right-bottom">
                 <div class="title">
-                    <span>상태 확인</span>
+                    <span>건강상태</span>
                 </div>
-
-                <div class="echart wenzi">
-                    <div class="gun">
-                        <span>ECG1</span>
-                        <span>ECG2</span>
-                        <span>ECG3</span>
-                    </div>
-                    <div id="FontScroll" class="myscroll">
-                        <ul>
-                            <li>
-                                <div class="fontInner clearfix">
-                                    <span>
-                                        <b> 1.예시</b>
-                                    </span>
-                                    <span>2.3%</span>
-                                    <span>45</span>
-                                </div>
-                            </li>
-                            <li>
-                                <div class="fontInner clearfix">
-                                    <span>
-                                        <b>2.예시</b>
-                                    </span>
-                                    <span>2.2%</span>
-                                    <span>44.5</span>
-                                </div>
-                            </li>
-                            <li>
-                                <div class="fontInner clearfix">
-                                    <span>
-                                        <b>3.예시</b>
-                                    </span>
-                                    <span>2.15%</span>
-                                    <span>44.3</span>
-                                </div>
-                            </li>
-                            <li>
-                                <div class="fontInner clearfix">
-                                    <span>
-                                        <b>4.예시</b>
-                                    </span>
-                                    <span>2.1%</span>
-                                    <span>43.5</span>
-                                </div>
-                            </li>
-                            <li>
-                                <div class="fontInner clearfix">
-                                    <span>
-                                        <b>5.예시2</b>
-                                    </span>
-                                    <span>2%</span>
-                                    <span>43</span>
-                                </div>
-                            </li>
-                            <li>
-                                <div class="fontInner clearfix">
-                                    <span>
-                                        <b>6.예시2</b>
-                                    </span>
-                                    <span>2%</span>
-                                    <span>43</span>
-                                </div>
-                            </li>
-                            <li>
-                                <div class="fontInner clearfix">
-                                    <span>
-                                        <b>5.예시2</b>
-                                    </span>
-                                    <span>2%</span>
-                                    <span>43</span>
-                                </div>
-                            </li>
-                            <li>
-                                <div class="fontInner clearfix">
-                                    <span>
-                                        <b>5.예시2</b>
-                                    </span>
-                                    <span>2%</span>
-                                    <span>43</span>
-                                </div>
-                            </li>        
-                        </ul>
-                    </div>
+                <div class="right-bottom-t">
+                    <div class="b-left" id="ceshi3"></div>
+                    <div class="b-cent" id="ceshi4"></div>
+                    <div class="b-right" id="ceshi5"></div>
                 </div>
             </div>
-            <!--右下-->
+            
             
         </div>
     </div>
@@ -228,7 +249,7 @@
 
 
 <script>
-    //顶部时间
+    
     function getTime(){
         var myDate = new Date();
         var myYear = myDate.getFullYear(); 
@@ -258,25 +279,28 @@
 </script>
 <script>
  $(function () {
-     var allLis=document.getElementById("tab_header").getElementsByTagName("li");
+     var allLis = document.getElementById("tab_header").getElementsByTagName("li");
      var allDom = document.getElementById("tab_content").getElementsByClassName("dom");
-
-     // console.log(allLis, allDom);
-
-     // 2. 遍历监听
+  
      for(var i=0; i<allLis.length; i++){
          var li = allLis[i];
          li.index = i;
 
          li.onclick = function () {
              console.log(i);
-             for(var j=0; j<allLis.length; j++){
+
+             for(var j=0; j<allLis.length-1; j++){
                  allLis[j].className = '';
                  allDom[j].style.display = 'none';
              }
 
              this.className = 'selected';
              allDom[this.index].style.display = 'block';
+
+             if(allLis[0].className|allLis[1].className == 'selected')
+             {
+                 allLis[2].className = '';
+             }
 
          }
      }

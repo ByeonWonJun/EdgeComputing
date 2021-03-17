@@ -67,10 +67,10 @@
 // JavaScript Document
 (function($){
     $.fn.myScroll = function(options){
-        //默认配置
+
         var defaults = {
-            speed:60,  //滚动速度,值越大速度越慢
-            rowHeight:24 //每行的高度
+            speed:60,  
+            rowHeight:24 
         };
 
         var opts = $.extend({}, defaults, options),intId = [];
@@ -82,7 +82,7 @@
             },0,function(){
                 var s = Math.abs(parseInt($(this).css("margin-top")));
                 if(s >= step){
-                    $(this).find("li").slice(0, 1).appendTo($(this));
+                    $(this).find("li").slice(0, 0).appendTo($(this));
                     $(this).css("margin-top", 0);
                 }
             });
