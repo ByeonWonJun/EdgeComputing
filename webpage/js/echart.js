@@ -21,7 +21,7 @@ $(function () {
             },
             {
                 name: '부정맥',
-                value: 16
+                value: 30
             },
             {
                 name: '심장 12',
@@ -30,12 +30,12 @@ $(function () {
             {
                 name: '심장 345',
                 value: 14
-            },
+            }
 
             
         ];
-        var color = ["#8d7fec", "#5085f2", "#e75fc3", "#f87be2"]
-        var xdata = ['심장 비대', "부정맥", "심장 12", "심장 345"];
+        var color = ["#8d7fec", "#5085f2", "#e75fc3", "#f87be2"];
+        var xdata = ['심장 비대', '부정맥', '심장 12', '심장 345'];
 
 
         option = {
@@ -70,7 +70,7 @@ $(function () {
             },
             series: [{
                 type: 'pie',
-                clockwise: true, //시계 방향으로 나열 여부
+                clockwise: false, //시계 방향으로 나열 여부
                 minAngle: 2, //가장 작은 섹터 각도（0 ~ 360）
                 radius: ["20%", "60%"],
                 center: ["30%", "45%"],
