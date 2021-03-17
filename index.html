@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Edge_DataOwner</title>
+    <link rel="stylesheet" href="css/index.css">
+    <script src="js/jquery.js"></script>
+    <script>
+        $(function () {
+            $('.myscroll').myScroll({
+                speed: 40, //높을수록 느림 
+                rowHeight: 80 //li높이
+            });
+        })
+
+        $(document).ready(function () {
+            var whei = $(window).width()
+            $("html").css({ fontSize: whei / 22 });
+            $(window).resize(function () {
+                var whei = $(window).width();
+                $("html").css({ fontSize: whei / 22 })
+            });
+        });
+    </script>
+</head>
+<body>
+
+<div class="main">
+
+    <!-- 제목 -->
+    <div class="header">
+        <div class="header-left" id="time"></div>
+        <div class="header-cen">
+            <h1>ECG</h1>
+        </div>
+        <div class="header-right"></div>
+    </div>
+
+    <!--중앙-->
+    <div class="content">
+        <!--왼쪽-->
+        <div class="content-left fl">
+            <!--왼쪽 위-->
+            <div class="left-top">
+                <div class="title">
+                    
+                    <input type="text" id="name">
+                    <button onclick="name()" style="background-color: #2EC7C9; color:black">확인</button>
+                </div>
+                <div class="list">
+                    <p>사용자 ID 표시</p>
+                    <ul>
+                        <li>사용자 이름 : </li>
+                        <li>이름</li>
+
+                        <li>나이 : </li>
+                        <li>나이</li>
+
+                        <li>성별 : </li>
+                        <li>성별</li>
+
+                        <li>주민번호 : </li>
+                        <li>주민번호 앞 6자리</li>
+
+                        <li>주소 : </li>
+                        <li>집 주소</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!--왼쪽 아래(그래프등)-->
+            <div class="left-bottom">
+                <div class="title">
+                    <span>검사 횟수</span>
+                </div>
+                <div class="allnav" id="ceshi"></div>
+            </div>
+
+    
+        </div>
+        <!--중앙-->
+        <div class="content-center fl">
+            <!--헤드-->
+            <div class="center-top">
+
+                <div id="map" style="width:500px;height:400px;"></div>
+	            <script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=90f20e745093a3389f1b1d00eb783ea1"></script>
+	            <script>
+		            var container = document.getElementById('map');
+		            var options = {
+		            	center: new kakao.maps.LatLng(33.450701, 126.570667),
+	            		level: 3
+	            	};
+
+	            	var map = new kakao.maps.Map(container, options);
+	            </script>
+                
+                </div>
+	            
+
+                
+            </div>
+            
+            <!--아래-->
+            <div class="center-bottom">
+
+                <div class="echart wenzi">
+                    <div class="gun">
+                        <span>이동경로</span>
+                        <span>위도</span>
+                        <span>경도</span>
+                    </div>
+                    <div id="FontScroll" class="myscroll">
+                        <ul>
+                            <li>
+                                <div class="fontInner clearfix">
+                                    <span>
+                                        <b>1.예시</b>
+                                    </span>
+                                    <span>12.34567</span>
+                                    <span>12.34567</span>
+                                </div>
+                            </li>
+                            <li>
+                                <div class="fontInner clearfix">
+                                    <span>
+                                        <b>2.예시</b>
+                                    </span>
+                                    <span>23.45678</span>
+                                    <span>23.45678</span>
+                                </div>
+                            </li>
+                            <li>
+                                <div class="fontInner clearfix">
+                                    <span>
+                                        <b>3.예시</b>
+                                    </span>
+                                    <span>34.56789</span>
+                                    <span>34.56789</span>
+                                </div>
+                            </li>
+                            <li>
+                                <div class="fontInner clearfix">
+                                    <span>
+                                        <b>4.예시</b>
+                                    </span>
+                                    <span>13.45678</span>
+                                    <span>13.45678</span>
+                                </div>
+                            </li>
+                            <li>
+                                <div class="fontInner clearfix">
+                                    <span>
+                                        <b>5.예시</b>
+                                    </span>
+                                    <span>13.56789</span>
+                                    <span>13.56789</span>
+                                </div>
+                            </li>
+                            <li>
+                                <div class="fontInner clearfix">
+                                    <span>
+                                        <b>6.예시</b>
+                                    </span>
+                                    <span>14.56789</span>
+                                    <span>14.56789</span>
+                                </div>
+                            </li>
+                            <li>
+                                <div class="fontInner clearfix">
+                                    <span>
+                                        <b>7.예시</b>
+                                    </span>
+                                    <span>24.56789</span>
+                                    <span>24.56789</span>
+                                </div>
+                            </li>
+                            <li>
+                                <div class="fontInner clearfix">
+                                    <span>
+                                        <b>8.예시</b>
+                                    </span>
+                                    <span>34.56789</span>
+                                    <span>34.56789</span>
+                                </div>
+                            </li>        
+                        </ul>
+                    </div>
+                </div>
+                
+            </div>
+        </div>
+        <!--오른쪽-->
+        <div class="content-right fr">
+            <!--오른쪽 위-->
+            <div class="right-top">
+                <!--그래프 표시할 부분-->
+                <div id="tab_header">
+                    <ul>
+                        <li class="selected">당일</li>
+                        <li >일주일</li>
+                        <li >한달</li>
+                    </ul>
+                </div>
+                <!--내용-->
+                <div id="tab_content">
+                    
+                    <div class="dom allnav" id="ceshi2" style="display: block">
+
+                        <!-- <div class="allnav" id="ceshi2"></div> -->
+               
+                    </div>
+
+                    <div class="dom allnav" id="ceshi2" style="display: none">
+
+                        <!-- <div class="allnav" id="ceshi2"></div> -->
+               
+                    </div>
+
+
+                   
+
+                </div>
+                
+                <!--선택항목 고르기-->
+            </div>
+            <!--오른쪽 아래-->
+            <div class="right-bottom">
+                <div class="title">
+                    <span>건강상태</span>
+                </div>
+                <div class="right-bottom-t">
+                    <div class="b-left" id="ceshi3"></div>
+                    <div class="b-cent" id="ceshi4"></div>
+                    <div class="b-right" id="ceshi5"></div>
+                </div>
+            </div>
+            
+            
+        </div>
+    </div>
+
+
+
+</div>
+
+
+<script src="js/echarts.min.js"></script>
+<script src="js/jquery.min.js"></script>
+<!--<script src="js/data01.js"></script>-->
+<!--<script src="js/mapIndex.js"></script>-->
+
+
+<script src="js/echart.js"></script>
+<script src="js/fontscroll.js"></script>
+<script src="js/china.js"></script>
+<script src="js/kakaomap.js"></script>
+<!-- <script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=90f20e745093a3389f1b1d00eb783ea1"></script> -->
+
+
+
+
+
+<script>
+    
+    function getTime(){
+        var myDate = new Date();
+        var myYear = myDate.getFullYear(); 
+        var myMonth = myDate.getMonth()+1; 
+        var myToday = myDate.getDate(); 
+        var myDay = myDate.getDay(); 
+        var myHour = myDate.getHours(); 
+        var myMinute = myDate.getMinutes(); 
+        var mySecond = myDate.getSeconds(); 
+        var week = ['일요일','월요일','화요일','수요일','목요일','금요일','토요일'];
+        var nowTime;
+
+        nowTime = myYear+'-'+fillZero(myMonth)+'-'+fillZero(myToday)+'&nbsp;&nbsp;'+fillZero(myHour)+':'+fillZero(myMinute)+':'+fillZero(mySecond)+'&nbsp;&nbsp;'+week[myDay]+'&nbsp;&nbsp;';
+        //console.log(nowTime);
+        $('#time').html(nowTime);
+    };
+    function fillZero(str){
+        var realNum;
+        if(str<10){
+            realNum	= '0'+str;
+        }else{
+            realNum	= str;
+        }
+        return realNum;
+    }
+    setInterval(getTime,1000);
+</script>
+<script>
+ $(function () {
+     var allLis = document.getElementById("tab_header").getElementsByTagName("li");
+     var allDom = document.getElementById("tab_content").getElementsByClassName("dom");
+  
+     for(var i=0; i<allLis.length; i++){
+         var li = allLis[i];
+         li.index = i;
+
+         li.onclick = function () {
+             console.log(i);
+
+             for(var j=0; j<allLis.length-1; j++){
+                 allLis[j].className = '';
+                 allDom[j].style.display = 'none';
+             }
+
+             this.className = 'selected';
+             allDom[this.index].style.display = 'block';
+
+             if(allLis[0].className|allLis[1].className == 'selected')
+             {
+                 allLis[2].className = '';
+             }
+
+         }
+     }
+ })
+</script>
+
+</body>
+</html>
