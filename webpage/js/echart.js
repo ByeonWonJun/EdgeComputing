@@ -94,7 +94,7 @@ $(function () {
                                 verticalAlign: 'middle',
                                 padding: 8
                             },
-                            value: {
+                            value: { 
                                 color: "#8693F3",
                                 fontSize: 24,
                                 align: 'center',
