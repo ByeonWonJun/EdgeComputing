@@ -9,10 +9,12 @@ $count_statement = mysqli_query($con, "Select Distinct FileID FROM tracking WHER
 $count = mysqli_num_rows($count_statement);
 if($count >= 1){
   $NFS_statement = mysqli_query($con, "Select Distinct FileID FROM tracking WHERE DeviceID = '$DeviceID'");
+	
 	while($row=mysqli_fetch_assoc($NFS_statement)){
-    $command = $row["FileID"];
-    system("sudo /home/tracking/Deletion/Deletion '$command'");
-  }
+		$command = $row["FileID"];
+		system("sudo /home/tracking/Deletion/Deletion '$command'");
+	}
+	
   $statement = mysqli_query($con, "DELETE FROM tracking WHERE DeviceID = '$DeviceID'");
   $statement = mysqli_query($con, "DELETE FROM mapping WHERE DeviceID = '$DeviceID'");
   
