@@ -13,7 +13,6 @@ if($count >= 1){
     $command = $row["FileID"];
     system("sudo /home/tracking/Deletion/Deletion '$command'");
   }
-
   $statement = mysqli_query($con, "DELETE FROM tracking WHERE DeviceID = '$DeviceID'");
   $statement = mysqli_query($con, "DELETE FROM mapping WHERE DeviceID = '$DeviceID'");
   
