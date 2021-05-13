@@ -25,8 +25,10 @@
         $response["UserName"] = $UserName;
         $response["UserPhone"] = $UserPhone;
         $response["UserNumber"] = $UserNumber;
+  
       }
 
-echo json_encode($response);
+
+    echo json_encode($response);
 
 ?>
