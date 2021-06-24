@@ -6,26 +6,25 @@
     $DeviceID = $_POST["DeviceID"];
     $ServiceID = $_POST["ServiceID"];
 
-    $isNull = mysqli_query($con, " SELECT ServiceID FROM tracking.mapping WHERE DeviceID = '$DeviceID' AND UserID = '$UserID'");
     $response = array();
+    $OK = false;
 
-    if($isNull == null){
-        $statement = mysqli_prepare($con, " UPDATE tracking.mapping SET ServiceID= ? WHERE DeviceID= ? AND UserID = ?");
-        mysqli_stmt_bind_param($statement, "sss", $ServiceID, $DeviceID, $UserID);
-        mysqli_stmt_execute($statement);
-        $response["success"] = true;
-    }else if($isNull != null){
-        $statement = mysqli_prepare($con, " INSERT INTO tracking.mapping VALUES(?,?,?)");
-        mysqli_stmt_bind_param($statement, "sss", $UserID,$DeviceID, $ServiceID );
-        mysqli_stmt_execute($statement); 
-        $response["success"] = true;
-    }else{
-        $response["success"] = false;
+    $isNull = mysqli_query($con, "SELECT ServiceID FROM mapping WHERE DeviceID = '$DeviceID' AND UserID = '$UserID'");
+
+    while($row=mysqli_fetch_assoc($isNull)){
+	$command=$row["ServiceID"];
+    	
+	if($command == NULL){
+	        $statement = mysqli_query($con, "UPDATE mapping SET ServiceID='$ServiceID' WHERE DeviceID= '$DeviceID' AND UserID = '$UserID'");
+		$OK = true;
+	}
     }
-    
+
+    if($OK == false)
+	$statement = mysqli_query($con, "insert into mapping values('$UserID', '$DeviceID', '$ServiceID')");
+
+    $response["success"] = true;
+
     echo json_encode($response);
-
     mysqli_close($con);
-
-
 ?>
