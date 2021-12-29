@@ -1,4 +1,4 @@
-EdgeXFoundry source code and database table
+EdgeXFoundry source code and database table.
 
 // EdgeX-Mysql - connect between device-example and database
 
@@ -10,3 +10,4 @@ EdgeXFoundry source code and database table
 // NFS-Ganesha (for pNFS)
 
 //
+
